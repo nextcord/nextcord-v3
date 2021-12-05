@@ -18,4 +18,21 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-__version__ = "3.0.0a"
+from typing import Protocol, Optional, TYPE_CHECKING
+from asyncio import Event
+
+if TYPE_CHECKING:
+    from .client import Client
+
+
+class GatewayProtocol(Protocol):
+    def __init__(self, client: Client, status, presence):
+        self.version: Optional[int]
+        self.shard_count: Optional[int]
+        self.ready: Event
+
+    async def connect(self, gateway_url: str, shard_count: Optional[int]):
+        ...
+
+    async def send(self, shard_id: int, data: dict):
+        ...

@@ -18,4 +18,13 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-__version__ = "3.0.0a"
+from .protocols.gateway import GatewayProtocol
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .protocols.client import Client
+
+
+class Gateway(GatewayProtocol):
+    def __init__(self, client: Client, status, presence):
+        ...

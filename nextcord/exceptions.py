@@ -1,0 +1,6 @@
+class NextcordException(Exception):
+    ...
+
+
+class DiscordException(Exception):
+    ...
