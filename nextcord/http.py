@@ -60,9 +60,7 @@ class Route(http.Route):
 
     @property
     def bucket(self) -> str:
-        return "{}/{};{}/{}".format(
-            self.guild_id, self.channel_id, self.webhook_id, self.webhook_token
-        )
+        return f"{self.method}:{self.path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
 
 
 class Bucket(http.Bucket):
