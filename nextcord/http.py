@@ -72,7 +72,6 @@ class Bucket(http.Bucket):
         self._pending: list[Future] = []
         self._reserved: int = 0
         self._loop = get_event_loop()
-        self._pending_reset: bool = False  # Prevents duplicate reset tasks
 
     @property
     def remaining(self) -> Optional[int]:
@@ -81,22 +80,20 @@ class Bucket(http.Bucket):
     @remaining.setter
     def remaining(self, new_value: int):
         self._remaining = new_value
-        if new_value == 0 and not self._pending_reset:
+        if new_value == 0:
             self._pending_reset = True
             sleep_time = self.reset_at - time()
-            print(sleep_time)
             self._loop.call_later(sleep_time, self._reset)
 
     def _reset(self):
-        print("Reset called")
         self.remaining = self.limit
 
-        for future in self._pending:
-            if self.remaining is not None and self.remaining <= 0:
-                break
+        for _ in range(self._calculated_remaining):
+            try:
+                future = self._pending.pop(0)
+            except IndexError:
+                break  # No more pendings, ignore
             future.set_result(None)
-            self._pending.remove(future)
-        self._pending_reset = False
 
     @property
     def _calculated_remaining(self) -> int:
