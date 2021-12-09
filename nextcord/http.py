@@ -24,13 +24,13 @@ from .protocols import http
 from .exceptions import DiscordException
 
 from typing import Any, Literal, Optional
-from asyncio import Future, Lock, get_event_loop
+from asyncio import Future, get_event_loop
 from aiohttp import ClientSession
 from collections import defaultdict
 from logging import getLogger
 from time import time
 
-logger = getLogger("nextcord.http")
+logger = getLogger(__name__)
 
 
 class Route(http.Route):
@@ -51,6 +51,7 @@ class Route(http.Route):
         **parameters: Any,
     ):
         self.method = method
+        self.unformatted_path = path
         self.path = path.format(**parameters)
 
         self.guild_id: Optional[int] = parameters.get("guild_id")
@@ -60,7 +61,7 @@ class Route(http.Route):
 
     @property
     def bucket(self) -> str:
-        return f"{self.method}:{self.path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
+        return f"{self.method}:{self.unformatted_path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
 
 
 class Bucket(http.Bucket):
@@ -98,7 +99,7 @@ class Bucket(http.Bucket):
     @property
     def _calculated_remaining(self) -> int:
         if self.remaining is None:
-            return 1
+            return 1  # We have no data, let's just assume we have one request so we can fetch the info.
         return self.remaining - self._reserved
 
     async def __aenter__(self) -> "Bucket":
@@ -110,7 +111,7 @@ class Bucket(http.Bucket):
             future = Future()
             self._pending.append(future)
             logger.debug(
-                f"Waiting for {str(self)} to clear up. {len(self._pending)} pending"
+                "Waiting for %s to clear up. %s pending", str(self), len(self._pending)
             )
             await future
         self._reserved += 1
@@ -123,10 +124,11 @@ class Bucket(http.Bucket):
 
 
 class HTTPClient(http.HTTPClient):
-    def __init__(self, token: Optional[str] = None):
+    def __init__(self, token: Optional[str] = None, *, max_retries: int = 5):
         self.version = 9
-        self.api_base = "https://discord.com/api/v{}".format(self.version)
+        self.api_base = f"https://discord.com/api/v" + str(self.version)
 
+        self.max_retries = max_retries
         self._global_lock = Bucket(Route("POST", "/global"))
         self._webhook_global_lock = Bucket(Route("POST", "/global/webhook"))
         self._session = ClientSession()
@@ -157,14 +159,14 @@ class HTTPClient(http.HTTPClient):
             headers = {}
         headers |= self._headers
 
-        for _ in range(5):
+        for _ in range(self.max_retries):
             async with global_lock:
                 bucket_str = route.bucket
                 bucket = self._buckets.get(bucket_str)
 
                 if bucket is None:
-                    self._buckets[bucket_str] = Bucket(route)
-                    bucket = self._buckets[bucket_str]  # TODO: Possibly shorten this?
+                    bucket = Bucket(route)
+                    self._buckets[bucket_str] = bucket
 
                 async with bucket:
                     r = await self._session.request(
@@ -173,7 +175,7 @@ class HTTPClient(http.HTTPClient):
                         headers=headers,
                         **kwargs,
                     )
-                logger.debug(f"{route.method} {route.path}")
+                logger.debug(f"%s %s", route.method, route.path)
 
                 try:
                     bucket.reset_at = float(r.headers["X-RateLimit-Reset"])
