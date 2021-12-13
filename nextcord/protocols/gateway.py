@@ -19,8 +19,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Protocol, Optional, TYPE_CHECKING
 from asyncio import Event
+from typing import TYPE_CHECKING, Optional, Protocol
 
 if TYPE_CHECKING:
     from .client import Client

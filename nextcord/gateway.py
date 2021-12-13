@@ -19,8 +19,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from .protocols.gateway import GatewayProtocol
 from typing import TYPE_CHECKING
+
+from .protocols.gateway import GatewayProtocol
 
 if TYPE_CHECKING:
     from .protocols.client import Client

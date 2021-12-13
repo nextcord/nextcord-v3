@@ -19,17 +19,18 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from aiohttp.client_reqrep import ClientResponse
-from . import __version__
-from .protocols import http
-from .exceptions import DiscordException
-
-from typing import Any, Literal, Optional
 from asyncio import Future, get_event_loop
-from aiohttp import ClientSession
 from collections import defaultdict
 from logging import getLogger
 from time import time
+from typing import Any, Literal, Optional
+
+from aiohttp import ClientSession
+from aiohttp.client_reqrep import ClientResponse
+
+from . import __version__
+from .exceptions import DiscordException
+from .protocols import http
 
 logger = getLogger(__name__)
 
