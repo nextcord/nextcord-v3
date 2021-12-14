@@ -14,4 +14,4 @@ jobs:
       - name: Run black
         run: black . --target-version py39 --diff --check
       - name: Run isort
-        run: isort . --check --diff
+        run: isort . --check --diff --profile black
