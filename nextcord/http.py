@@ -19,6 +19,14 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from aiohttp.client_reqrep import ClientResponse
+from . import __version__
+from .protocols import http
+from .exceptions import DiscordException
+from .utils import json
+from .exceptions import CloudflareBanException, HTTPException
+
+from typing import TYPE_CHECKING
 from asyncio import Future, get_event_loop
 from collections import defaultdict
 from logging import getLogger
@@ -31,6 +39,10 @@ from aiohttp.client_reqrep import ClientResponse
 from . import __version__
 from .exceptions import DiscordException
 from .protocols import http
+
+if TYPE_CHECKING:
+    from typing import Any, Literal, Optional
+    from .type_sheet import TypeSheet
 
 logger = getLogger(__name__)
 
@@ -126,16 +138,25 @@ class Bucket(http.Bucket):
 
 
 class HTTPClient(http.HTTPClient):
-    def __init__(self, token: Optional[str] = None, *, max_retries: int = 5):
+    def __init__(
+        self,
+        type_sheet: TypeSheet,
+        token: Optional[str] = None,
+        *,
+        max_retries: int = 5,
+    ):
         self.version = 9
         self.api_base = f"https://discord.com/api/v" + str(self.version)
+        self.type_sheet: TypeSheet = type_sheet
 
         self.max_retries = max_retries
-        self._global_lock = Bucket(Route("POST", "/global"))
-        self._webhook_global_lock = Bucket(Route("POST", "/global/webhook"))
-        self._session = ClientSession()
-        self._buckets: dict[str, Bucket] = {}
-        self._http_errors = defaultdict((lambda: DiscordException), {})
+        self._global_lock = self.type_sheet.http_bucket(Route("POST", "/global"))
+        self._webhook_global_lock = self.type_sheet.http_bucket(
+            Route("POST", "/global/webhook")
+        )
+        self._session = ClientSession(json_serialize=json.dumps)
+        self._buckets: dict[str, type_sheet.http_bucket] = {}
+        self._http_errors = defaultdict((lambda: HTTPException), {})
 
         self._headers = {
             "User-Agent": "DiscordBot (https://github.com/nextcord/nextcord, {})".format(
@@ -167,7 +188,7 @@ class HTTPClient(http.HTTPClient):
                 bucket = self._buckets.get(bucket_str)
 
                 if bucket is None:
-                    bucket = Bucket(route)
+                    bucket = self.type_sheet.http_bucket(route)
                     self._buckets[bucket_str] = bucket
 
                 async with bucket:
@@ -177,7 +198,7 @@ class HTTPClient(http.HTTPClient):
                         headers=headers,
                         **kwargs,
                     )
-                logger.debug(f"%s %s", route.method, route.path)
+                logger.debug("%s %s", route.method, route.path)
 
                 try:
                     bucket.reset_at = float(r.headers["X-RateLimit-Reset"])
@@ -189,9 +210,14 @@ class HTTPClient(http.HTTPClient):
 
                 if (status := r.status) >= 300:
                     if status == 429:
+                        if "via" not in r.headers.keys():
+                            raise
                         logger.debug("Ratelimit exceeded")
                         continue
-                    raise self._http_errors[status](await r.text())
+                    error = await r.json()
+                    raise self._http_errors[status](
+                        r.status, error["code"], error["message"]
+                    )
 
                 return r
 
