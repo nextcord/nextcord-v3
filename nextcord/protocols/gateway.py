@@ -19,21 +19,25 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from asyncio import Event
-from typing import TYPE_CHECKING, Optional, Protocol
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .client import Client
+    from asyncio import Event
+    from typing import Any, Optional, Protocol
+
+    from .http import HTTPClient
+    from nextcord.type_sheet import TypeSheet
 
 
 class GatewayProtocol(Protocol):
-    def __init__(self, client: Client, status, presence):
-        self.version: Optional[int]
+    def __init__(self, type_sheet: TypeSheet, http: HTTPClient, *, status: Any = None, presence: Any = None, shard_count: Optional[int] = None):
+        self.status: Any 
+        self.presence: Any
         self.shard_count: Optional[int]
         self.ready: Event
 
-    async def connect(self, gateway_url: str, shard_count: Optional[int]):
+    async def connect(self, gateway_url: str):
         ...
 
-    async def send(self, shard_id: int, data: dict):
+    async def send(self, data: dict, *, shard_id: int = 0):
         ...

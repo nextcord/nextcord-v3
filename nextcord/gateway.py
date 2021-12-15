@@ -24,9 +24,11 @@ from typing import TYPE_CHECKING
 from .protocols.gateway import GatewayProtocol
 
 if TYPE_CHECKING:
-    from .protocols.client import Client
+    from typing import Any, Optional
+    from .protocols.http import HTTPClient
+    from .type_sheet import TypeSheet
 
 
 class Gateway(GatewayProtocol):
-    def __init__(self, client: Client, status, presence):
-        ...
+    def __init__(self, type_sheet: TypeSheet, http: HTTPClient, *, status: Any, presence: Any, shard_count: Optional[int]):
+        super().__init__(type_sheet, http, status=status, presence=presence, shard_count=shard_count)
