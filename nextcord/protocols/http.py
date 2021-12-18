@@ -21,6 +21,8 @@
 
 from typing import Any, Literal, Optional, Protocol
 
+from nextcord.type_sheet import TypeSheet
+
 
 class Route(Protocol):
     def __init__(
@@ -62,7 +64,7 @@ class Bucket(Protocol):
 
 
 class HTTPClient(Protocol):
-    def __init__(self, token: Optional[str] = None):
+    def __init__(self, type_sheet: TypeSheet, token: Optional[str] = None):
         self.base_url: str
         self.version: int
 

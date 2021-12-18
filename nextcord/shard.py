@@ -18,45 +18,30 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-from __future__ import annotations
 
-from asyncio.futures import Future
 from typing import TYPE_CHECKING
 
-from .protocols.gateway import GatewayProtocol
+from .protocols.shard import ShardProtocol
 
 if TYPE_CHECKING:
-    from typing import Any, Optional
-
-    from .protocols.http import HTTPClient
-    from .type_sheet import TypeSheet
+    from typing import Any
 
 
-class Gateway(GatewayProtocol):
+class Shard(ShardProtocol):
     def __init__(
         self,
-        type_sheet: TypeSheet,
-        http: HTTPClient,
         *,
-        status: Any = None,
-        presence: Any = None,
-        shard_count: Optional[int] = None
-    ):
-        self.type_sheet: TypeSheet = type_sheet
-        self.http: HTTPClient = http
-        self._error_future: Future = Future()
-
-        # Shard count
-        self.shard_count: Optional[int] = shard_count
-        self.current_shard_count: Optional[int] = shard_count
-
-        # Shard sets
-        self.shards: list[Any] = []
-        # When we get disconnected for too low shard count, we start creating a second set of inactive shards.
-        self._pending_shard_set: list[Any] = []
-        self.recreating_shards: bool = False
+        gateway_url: str,
+        shard_id: int,
+        shard_count: int,
+        error_callback: Any,
+        message_callback: Any
+    ) -> None:
+        self.gateway_url: str = gateway_url
+        self.shard_id: int = shard_id
+        self.shard_count: int = shard_count
+        self.error_callback: Any = error_callback
+        self.message_callback: Any = message_callback
 
     async def connect(self):
-        # TODO: Connect
-
-        await self._error_future
+        ...

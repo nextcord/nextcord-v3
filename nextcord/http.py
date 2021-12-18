@@ -19,30 +19,23 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from aiohttp.client_reqrep import ClientResponse
-from . import __version__
-from .protocols import http
-from .exceptions import DiscordException
-from .utils import json
-from .exceptions import CloudflareBanException, HTTPException
-
-from typing import TYPE_CHECKING
 from asyncio import Future, get_event_loop
 from collections import defaultdict
 from logging import getLogger
 from time import time
-from typing import Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from aiohttp import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 
 from . import __version__
-from .exceptions import DiscordException
+from .exceptions import CloudflareBanException, DiscordException, HTTPException
 from .protocols import http
+from .type_sheet import TypeSheet
+from .utils import json
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Optional
-    from .type_sheet import TypeSheet
 
 logger = getLogger(__name__)
 

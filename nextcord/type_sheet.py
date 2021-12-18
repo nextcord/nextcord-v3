@@ -17,6 +17,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
@@ -24,16 +25,24 @@ from attr import dataclass
 
 if TYPE_CHECKING:
     from typing import Type
-    from .protocols.http import Bucket, HTTPClient
 
-from .http import Bucket as DefaultBucket
-from .http import HTTPClient as DefaultHTTPClient
+    from .protocols.gateway import GatewayProtocol
+    from .protocols.http import Bucket, HTTPClient
 
 
 @dataclass
 class TypeSheet:
-    def __init__(
-        self, *, http_client: Type[HTTPClient] = None, http_bucket: Type[Bucket] = None
-    ):
-        self.http_client: Type[HTTPClient] = http_client or DefaultHTTPClient
-        self.http_bucket: Type[Bucket] = http_bucket or DefaultBucket
+    http_client: Type[HTTPClient]
+    http_bucket: Type[Bucket]
+    gateway: Type[GatewayProtocol]
+
+    @classmethod
+    def default(cls) -> "TypeSheet":
+        # TODO: Possibly make this cleaner?
+        from .gateway import Gateway
+        from .http import Bucket as DefaultBucket
+        from .http import HTTPClient as DefaultHTTPClient
+
+        return cls(
+            http_client=DefaultHTTPClient, http_bucket=DefaultBucket, gateway=Gateway
+        )

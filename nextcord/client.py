@@ -17,30 +17,42 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+from __future__ import annotations
 
 import asyncio
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-logger = getLogger(__name__)
-
+from .protocols.client import Client as BaseClient
 
 if TYPE_CHECKING:
     from typing import Any, Optional
 
-    from .protocols.client import Client as BaseClient
     from .protocols.http import HTTPClient
     from .type_sheet import TypeSheet
 
 
+logger = getLogger(__name__)
+
+
 class Client(BaseClient):
-    def __init__(self, *, type_sheet: TypeSheet, intents: Any) -> None:
-        self.type_sheet: TypeSheet = type_sheet
-        self.http: Optional[HTTPClient] = None
+    def __init__(
+        self,
+        token: str,
+        *,
+        type_sheet: Optional[TypeSheet] = None,
+        intents: Optional[Any] = None
+    ) -> None:
+        self.token: str = token
+        self.type_sheet: TypeSheet = type_sheet or TypeSheet.default()
+        self.http: Optional[HTTPClient] = self.type_sheet.http_client(
+            self.type_sheet, self.token
+        )
+        self.gateway = self.type_sheet.gateway(self.type_sheet, self.http)
+        self.loop = asyncio.get_event_loop()
 
-    async def connect(self, token: str) -> None:
-        self.http = self.type_sheet.http_client()
-        ...
+    async def connect(self) -> None:
+        await self.gateway.connect()
 
-    def run(self, token: str) -> None:
-        asyncio.run(self.connect(token))
+    def run(self) -> None:
+        asyncio.run(self.connect())

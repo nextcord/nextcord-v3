@@ -18,25 +18,35 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from asyncio import Event
-    from typing import Any, Optional, Protocol
+    from typing import Any, Optional
+
+    from nextcord.type_sheet import TypeSheet
 
     from .http import HTTPClient
-    from nextcord.type_sheet import TypeSheet
 
 
 class GatewayProtocol(Protocol):
-    def __init__(self, type_sheet: TypeSheet, http: HTTPClient, *, status: Any = None, presence: Any = None, shard_count: Optional[int] = None):
-        self.status: Any 
+    def __init__(
+        self,
+        type_sheet: TypeSheet,
+        http: HTTPClient,
+        *,
+        status: Any = None,
+        presence: Any = None,
+        shard_count: Optional[int] = None
+    ):
+        self.status: Any
         self.presence: Any
         self.shard_count: Optional[int]
         self.ready: Event
 
-    async def connect(self, gateway_url: str):
+    async def connect(self):
         ...
 
     async def send(self, data: dict, *, shard_id: int = 0):
