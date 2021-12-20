@@ -18,10 +18,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+from __future__ import annotations
 
-from typing import Any, Literal, Optional, Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from nextcord.type_sheet import TypeSheet
+if TYPE_CHECKING:
+    from typing import Any, Literal, Optional
+
+    from aiohttp import ClientWebSocketResponse
+
+    from nextcord.type_sheet import TypeSheet
 
 
 class Route(Protocol):
@@ -69,4 +75,7 @@ class HTTPClient(Protocol):
         self.version: int
 
     async def request(self, route: Route, **kwargs):
+        ...
+
+    async def ws_connect(self, url) -> ClientWebSocketResponse:
         ...

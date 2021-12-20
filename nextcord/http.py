@@ -19,11 +19,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import annotations
+
 from asyncio import Future, get_event_loop
 from collections import defaultdict
 from logging import getLogger
 from time import time
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING
 
 from aiohttp import ClientSession
 from aiohttp.client_reqrep import ClientResponse
@@ -217,3 +219,6 @@ class HTTPClient(http.HTTPClient):
         raise DiscordException(
             "Ratelimiting failed 5 times. This should only happen if you are running multiple bots with the same IP."
         )
+
+    async def ws_connect(self, url) -> ClientWebSocketResponse:
+        return self._session.ws_connect(url)
