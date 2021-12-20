@@ -55,4 +55,4 @@ class Client(BaseClient):
         await self.gateway.connect()
 
     def run(self) -> None:
-        asyncio.run(self.connect())
+        self.loop.run_until_complete(self.connect())
