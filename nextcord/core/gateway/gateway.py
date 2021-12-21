@@ -32,17 +32,11 @@ from .shard import Shard
 if TYPE_CHECKING:
     from typing import Any, Optional
 
-    from ...type_sheet import TypeSheet
-    from ..protocols.http import HTTPClient
-
 
 class Gateway(GatewayProtocol):
     def __init__(
         self,
         state: State,
-        *,
-        status: Any = None,
-        presence: Any = None,
     ):
         self.state: State = state
         self._error_future: Future = Future()
@@ -66,7 +60,6 @@ class Gateway(GatewayProtocol):
 
         r = await self.state.http.get_gateway_bot()
         gateway_info = await r.json()
-        gateway_url = gateway_info["url"]
 
         if self.shard_count is None:
             self.shard_count = gateway_info["shards"]
@@ -77,7 +70,6 @@ class Gateway(GatewayProtocol):
         for shard_id in range(self.shard_count):
             shard = Shard(
                 self.state,
-                gateway_url,
                 shard_id,
             )
             await shard.connect()

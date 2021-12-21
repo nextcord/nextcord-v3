@@ -17,6 +17,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from __future__ import annotations
+
 from asyncio.events import get_event_loop
 from collections import defaultdict
 from logging import getLogger
