@@ -23,9 +23,8 @@ import asyncio
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from .state import State
-
 from .protocols.client import Client as BaseClient
+from .state import State
 
 if TYPE_CHECKING:
     from typing import Any, Optional

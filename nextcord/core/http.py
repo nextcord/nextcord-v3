@@ -24,18 +24,20 @@ from __future__ import annotations
 from asyncio import Future, get_event_loop
 from collections import defaultdict
 from logging import getLogger
-from nextcord.client.state import State
 from time import time
 from typing import TYPE_CHECKING
 
 from aiohttp import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 
+from nextcord.client.state import State
+
 from .. import __version__
-from ..exceptions import CloudflareBanException, DiscordException, HTTPException
-from .protocols import http
+from ..exceptions import (CloudflareBanException, DiscordException,
+                          HTTPException)
 from ..type_sheet import TypeSheet
 from ..utils import json
+from .protocols import http
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Optional
