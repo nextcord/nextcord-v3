@@ -17,6 +17,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
+from asyncio.locks import Event
 
 from logging import getLogger
 from nextcord.exceptions import NextcordException
@@ -49,6 +50,8 @@ class Shard(ShardProtocol):
         self.shard_id: int = shard_id
         self.gateway_url = "wss://gateway.discord.gg?v=9&compress=zlib-stream"
 
+        self.ready: Event = Event()
+
         # Internal things
         self._ws: Optional[ClientWebSocketResponse] = None
         self._ratelimiter = TimesPer(120, 60)
@@ -66,7 +69,8 @@ class Shard(ShardProtocol):
         self.state.loop.create_task(self._receive_loop())
         async with self.state.gateway.get_identify_ratelimiter(self.shard_id):
             await self.identify()
-            self.logger.info("Connected to the gateway")
+        self.logger.info("Connected to the gateway")
+        self.ready.set()
 
     async def send(self, data: dict):
         async with self._ratelimiter:
@@ -85,6 +89,9 @@ class Shard(ShardProtocol):
                 data = json.loads(raw_data.decode("utf-8"))
                 self.logger.debug("< %s", data)
                 self.opcode_dispatcher.dispatch(data["op"], data["d"])
+
+                if data["op"] == 0:
+                    self.event_dispatcher.dispatch(data["t"], data["d"])
             else:
                 self.logger.debug("Unknown message type %s", message.type)
 

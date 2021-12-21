@@ -37,6 +37,7 @@ class Dispatcher:
         self.loop = get_event_loop()
 
     def dispatch(self, event_name: Any, *args):
+        logger.debug("Dispatching event %s", event_name)
         # Normal listeners
         for listener in self.listeners[event_name]:
             self.loop.create_task(listener(*args))
