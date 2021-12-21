@@ -33,8 +33,7 @@ from aiohttp.client_reqrep import ClientResponse
 from nextcord.client.state import State
 
 from .. import __version__
-from ..exceptions import (CloudflareBanException, DiscordException,
-                          HTTPException)
+from ..exceptions import CloudflareBanException, DiscordException, HTTPException
 from ..type_sheet import TypeSheet
 from ..utils import json
 from .protocols import http
