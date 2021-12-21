@@ -10,3 +10,4 @@ Please don't use GitHub issues to ask a question, we would much rather you use o
 We use the [angular style](https://kapeli.com/cheat_sheets/Conventional_Commits.docset/Contents/Resources/Documents/index) of conventional commits.  
 Test your code before pushing/making a PR! I cannot stress this enough.  
 When linking PRs/Issues please use the shorthand `#123` and not full URLs.  
+Format your changes! Please see `lint.sh` for linting
