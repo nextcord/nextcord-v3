@@ -45,7 +45,7 @@ class Route(Protocol):
             "PATCH",
         ],
         path: str,
-        **parameters: dict[str, Any]
+        **parameters: dict[str, Any],
     ):
         self.method: str
         self.path: str

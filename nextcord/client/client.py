@@ -43,7 +43,7 @@ class Client(BaseClient):
         *,
         type_sheet: Optional[TypeSheet] = None,
         intents: Optional[int] = None,
-        shard_count: Optional[int] = None
+        shard_count: Optional[int] = None,
     ) -> None:
         self.state: State = State(type_sheet, token, intents, shard_count)
 

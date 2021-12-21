@@ -35,7 +35,7 @@ class ShardProtocol(Protocol):
         shard_id: int,
         shard_count: int,
         error_callback: Any,
-        message_callback: Any
+        message_callback: Any,
     ) -> None:
         self.shard_id: int
         self.shard_count: int

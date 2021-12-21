@@ -39,7 +39,7 @@ class GatewayProtocol(Protocol):
         *,
         status: Any = None,
         presence: Any = None,
-        shard_count: Optional[int] = None
+        shard_count: Optional[int] = None,
     ):
         self.status: Any
         self.presence: Any

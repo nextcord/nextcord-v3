@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
+
 class Dispatcher:
     def __init__(self):
         self.listeners: dict[Any, list[Any]] = defaultdict(lambda: [])
@@ -40,7 +41,9 @@ class Dispatcher:
 
         # Predicates
         for predicate_info in self.predicates:
-            self.loop.create_task(self._dispatch_predicate(predicate_info, event_name, *args))
+            self.loop.create_task(
+                self._dispatch_predicate(predicate_info, event_name, *args)
+            )
 
     async def _dispatch_predicate(self, predicate_info: Any, event_name: Any, *args):
         predicate = predicate_info[0]
