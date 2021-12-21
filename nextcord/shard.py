@@ -23,6 +23,7 @@ from asyncio.futures import Future
 from asyncio.locks import Lock
 from logging import getLogger
 from typing import TYPE_CHECKING
+from .ratelimiter import TimesPer
 
 from .protocols.shard import ShardProtocol
 from .utils import json
@@ -34,6 +35,7 @@ if TYPE_CHECKING:
 
     from .protocols.gateway import GatewayProtocol
     from .protocols.http import HTTPClient
+
 
 class Shard(ShardProtocol):
     def __init__(
@@ -62,42 +64,11 @@ class Shard(ShardProtocol):
         self.logger = getLogger(f"nextcord.shard.{self.shard_id}")
 
     async def connect(self):
-        self._ws = await self._http.ws_connect(self.gateway_url)
+        async with self.gateway.get_identify_ratelimiter(self.shard_id):
+            self._ws = await self._http.ws_connect(self.gateway_url)
+        self.logger.info("Connected to the gateway")
 
     async def send(self, data: dict):
         async with self._ratelimiter:
             self.logger.debug("> %s", data)
-
-
-
-class TimesPer:
-    def __init__(self, limit: int, per: int) -> None:
-        self.limit: int = limit
-        self.per: int = per
-        self.reset_at = Optional[float]
-        self.current: int = self.limit
-
-        self._reserved: list[Future] = []
-
-    async def __aenter__(self) -> "TimesPer":
-        current_time = time.time()
-        if self.reset_at is None:
-            self.reset_at = current_time + self.per
-        if self.reset_at < current_time:
-            self.reset_at = current_time + self.per
-            self.current = self.limit
-
-            for _ in range(self.limit):
-                try:
-                    self._reserved.pop().set_result(None)
-                except IndexError:
-                    break
-
-        if self.current == 0:
-            self._reserved.append(future := Future())
-            await future
-
-        return self
-
-    async def __aexit__(self) -> None:
-        ...
+            await self._ws.send_str(json.dumps(data))

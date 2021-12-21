@@ -21,9 +21,12 @@
 from __future__ import annotations
 
 from asyncio.futures import Future
+from collections import defaultdict
+from nextcord.shard import Shard
 from typing import TYPE_CHECKING
 
 from .protocols.gateway import GatewayProtocol
+from .ratelimiter import TimesPer
 
 if TYPE_CHECKING:
     from typing import Any, Optional
@@ -46,9 +49,13 @@ class Gateway(GatewayProtocol):
         self.http: HTTPClient = http
         self._error_future: Future = Future()
 
+        # Ratelimiting
+        self._identify_ratelimits = defaultdict(lambda: TimesPer(1, 1))
+        self.max_concurrency: Optional[int] = None
+
         # Shard count
         self.shard_count: Optional[int] = shard_count
-        self.current_shard_count: Optional[int] = shard_count
+        self._shard_count_locked = self.shard_count is not None
 
         # Shard sets
         self.shards: list[Any] = []
@@ -58,5 +65,23 @@ class Gateway(GatewayProtocol):
 
     async def connect(self):
         # TODO: Connect
+        
+        r = await self.http.get_gateway_bot()
+        gateway_info = await r.json()
+        gateway_url = gateway_info["url"]
+        
+        if self.shard_count is None:
+            self.shard_count = gateway_info["shards"]
+        
+        session_start_limit = gateway_info["session_start_limit"]
+        self.max_concurrency = session_start_limit["max_concurrency"]
+
+        for shard_id in range(self.shard_count):
+            shard = Shard(gateway=self, gateway_url=gateway_url, shard_id=shard_id, shard_count=self.shard_count, error_callback=None, message_callback=None, http=self.http)
+            await shard.connect()
+            self.shards.append(shard)
 
         await self._error_future
+
+    def get_identify_ratelimiter(self, shard_id):
+        return self._identify_ratelimits[shard_id % self.max_concurrency]
