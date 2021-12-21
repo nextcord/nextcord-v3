@@ -23,49 +23,41 @@ from asyncio.futures import Future
 from asyncio.locks import Lock
 from logging import getLogger
 from typing import TYPE_CHECKING
-from .ratelimiter import TimesPer
 
+from ...client.state import State
+from ...utils import json
+from ..ratelimiter import TimesPer
 from .protocols.shard import ShardProtocol
-from .utils import json
 
 if TYPE_CHECKING:
     from typing import Any, Optional
 
     from aiohttp import ClientWebSocketResponse
 
+    from ..protocols.http import HTTPClient
     from .protocols.gateway import GatewayProtocol
-    from .protocols.http import HTTPClient
 
 
 class Shard(ShardProtocol):
     def __init__(
         self,
-        *,
-        gateway: GatewayProtocol,
+        state: State,
         gateway_url: str,
         shard_id: int,
-        shard_count: int,
-        error_callback: Any,
-        message_callback: Any,
-        http: HTTPClient,
     ) -> None:
+        self.state: State = state
         self.gateway_url: str = gateway_url
         self.shard_id: int = shard_id
-        self.shard_count: int = shard_count
 
         # Internal things
-        self.gateway: GatewayProtocol = gateway
-        self.error_callback: Any = error_callback
-        self.message_callback: Any = message_callback
         self._ws: Optional[ClientWebSocketResponse] = None
-        self._http: HTTPClient = http
         self._ratelimiter = TimesPer(120, 60)
 
         self.logger = getLogger(f"nextcord.shard.{self.shard_id}")
 
     async def connect(self):
-        async with self.gateway.get_identify_ratelimiter(self.shard_id):
-            self._ws = await self._http.ws_connect(self.gateway_url)
+        async with self.state.gateway.get_identify_ratelimiter(self.shard_id):
+            self._ws = await self.state.http.ws_connect(self.gateway_url)
         self.logger.info("Connected to the gateway")
 
     async def send(self, data: dict):

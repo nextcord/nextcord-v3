@@ -23,13 +23,15 @@ import asyncio
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from .state import State
+
 from .protocols.client import Client as BaseClient
 
 if TYPE_CHECKING:
     from typing import Any, Optional
 
-    from .protocols.http import HTTPClient
-    from .type_sheet import TypeSheet
+    from ..core.protocols.http import HTTPClient
+    from ..type_sheet import TypeSheet
 
 
 logger = getLogger(__name__)
@@ -41,18 +43,13 @@ class Client(BaseClient):
         token: str,
         *,
         type_sheet: Optional[TypeSheet] = None,
-        intents: Optional[Any] = None
+        intents: Optional[int] = None,
+        shard_count: Optional[int] = None
     ) -> None:
-        self.token: str = token
-        self.type_sheet: TypeSheet = type_sheet or TypeSheet.default()
-        self.http: Optional[HTTPClient] = self.type_sheet.http_client(
-            self.type_sheet, self.token
-        )
-        self.gateway = self.type_sheet.gateway(self.type_sheet, self.http)
-        self.loop = asyncio.get_event_loop()
+        self.state: State = State(type_sheet, token, intents, shard_count)
 
     async def connect(self) -> None:
-        await self.gateway.connect()
+        await self.state.gateway.connect()
 
     def run(self) -> None:
-        self.loop.run_until_complete(self.connect())
+        self.state.loop.run_until_complete(self.connect())

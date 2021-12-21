@@ -12,7 +12,7 @@ class HTTPException(DiscordException):
         self.code = code
         self.message = message
 
-        super().__init__(f"({self.code} {self.message}")
+        super().__init__(f"({self.code}) {self.message}")
 
 
 class RatelimitException(DiscordException):

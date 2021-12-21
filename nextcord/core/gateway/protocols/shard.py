@@ -18,7 +18,32 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+from __future__ import annotations
 
-__version__ = "3.0.0a"
+from typing import TYPE_CHECKING, Protocol
 
-from .client.client import Client
+if TYPE_CHECKING:
+    from asyncio import Event
+    from typing import Any
+
+
+class ShardProtocol(Protocol):
+    def __init__(
+        self,
+        *,
+        gateway_url: str,
+        shard_id: int,
+        shard_count: int,
+        error_callback: Any,
+        message_callback: Any
+    ) -> None:
+        self.shard_id: int
+        self.shard_count: int
+        self.ready: Event
+
+        # Callbacks
+        self.error_callback: Any
+        self.message_callback: Any
+
+    async def connect(self) -> None:
+        ...

@@ -26,8 +26,8 @@ from attr import dataclass
 if TYPE_CHECKING:
     from typing import Type
 
-    from .protocols.gateway import GatewayProtocol
-    from .protocols.http import Bucket, HTTPClient
+    from .core.gateway.gateway import GatewayProtocol
+    from .core.protocols.http import Bucket, HTTPClient
 
 
 @dataclass
@@ -39,9 +39,9 @@ class TypeSheet:
     @classmethod
     def default(cls) -> "TypeSheet":
         # TODO: Possibly make this cleaner?
-        from .gateway import Gateway
-        from .http import Bucket as DefaultBucket
-        from .http import HTTPClient as DefaultHTTPClient
+        from .core.gateway.gateway import Gateway
+        from .core.http import Bucket as DefaultBucket
+        from .core.http import HTTPClient as DefaultHTTPClient
 
         return cls(
             http_client=DefaultHTTPClient, http_bucket=DefaultBucket, gateway=Gateway

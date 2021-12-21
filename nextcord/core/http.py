@@ -24,17 +24,18 @@ from __future__ import annotations
 from asyncio import Future, get_event_loop
 from collections import defaultdict
 from logging import getLogger
+from nextcord.client.state import State
 from time import time
 from typing import TYPE_CHECKING
 
 from aiohttp import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 
-from . import __version__
-from .exceptions import CloudflareBanException, DiscordException, HTTPException
+from .. import __version__
+from ..exceptions import CloudflareBanException, DiscordException, HTTPException
 from .protocols import http
-from .type_sheet import TypeSheet
-from .utils import json
+from ..type_sheet import TypeSheet
+from ..utils import json
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Optional
@@ -135,22 +136,22 @@ class Bucket(http.Bucket):
 class HTTPClient(http.HTTPClient):
     def __init__(
         self,
-        type_sheet: TypeSheet,
-        token: Optional[str] = None,
+        state: State,
         *,
         max_retries: int = 5,
     ):
         self.version = 9
         self.api_base = f"https://discord.com/api/v" + str(self.version)
-        self.type_sheet: TypeSheet = type_sheet
+
+        self.state = state
 
         self.max_retries = max_retries
-        self._global_lock = self.type_sheet.http_bucket(Route("POST", "/global"))
-        self._webhook_global_lock = self.type_sheet.http_bucket(
+        self._global_lock = self.state.type_sheet.http_bucket(Route("POST", "/global"))
+        self._webhook_global_lock = self.state.type_sheet.http_bucket(
             Route("POST", "/global/webhook")
         )
         self._session = ClientSession(json_serialize=json.dumps)
-        self._buckets: dict[str, type_sheet.http_bucket] = {}
+        self._buckets: dict[str, http.Bucket] = {}
         self._http_errors = defaultdict((lambda: HTTPException), {})
 
         self._headers = {
@@ -158,8 +159,8 @@ class HTTPClient(http.HTTPClient):
                 __version__
             )
         }
-        if token:
-            self._headers["Authorization"] = "Bot " + token
+        if self.state.token:
+            self._headers["Authorization"] = "Bot " + self.state.token
 
     async def request(
         self,
@@ -183,7 +184,7 @@ class HTTPClient(http.HTTPClient):
                 bucket = self._buckets.get(bucket_str)
 
                 if bucket is None:
-                    bucket = self.type_sheet.http_bucket(route)
+                    bucket = self.state.type_sheet.http_bucket(route)
                     self._buckets[bucket_str] = bucket
 
                 async with bucket:
@@ -222,7 +223,6 @@ class HTTPClient(http.HTTPClient):
 
     async def ws_connect(self, url) -> ClientWebSocketResponse:
         return await self._session.ws_connect(url)
-
 
     # Wrappers around the http methods
     async def get_gateway_bot(self):

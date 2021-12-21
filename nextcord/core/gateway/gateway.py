@@ -22,31 +22,29 @@ from __future__ import annotations
 
 from asyncio.futures import Future
 from collections import defaultdict
-from nextcord.shard import Shard
 from typing import TYPE_CHECKING
 
+from ...client.state import State
+from ..ratelimiter import TimesPer
 from .protocols.gateway import GatewayProtocol
-from .ratelimiter import TimesPer
+from .shard import Shard
 
 if TYPE_CHECKING:
     from typing import Any, Optional
 
-    from .protocols.http import HTTPClient
-    from .type_sheet import TypeSheet
+    from ...type_sheet import TypeSheet
+    from ..protocols.http import HTTPClient
 
 
 class Gateway(GatewayProtocol):
     def __init__(
         self,
-        type_sheet: TypeSheet,
-        http: HTTPClient,
+        state: State,
         *,
         status: Any = None,
         presence: Any = None,
-        shard_count: Optional[int] = None
     ):
-        self.type_sheet: TypeSheet = type_sheet
-        self.http: HTTPClient = http
+        self.state: State = state
         self._error_future: Future = Future()
 
         # Ratelimiting
@@ -54,7 +52,7 @@ class Gateway(GatewayProtocol):
         self.max_concurrency: Optional[int] = None
 
         # Shard count
-        self.shard_count: Optional[int] = shard_count
+        self.shard_count: Optional[int] = self.state.shard_count
         self._shard_count_locked = self.shard_count is not None
 
         # Shard sets
@@ -65,19 +63,23 @@ class Gateway(GatewayProtocol):
 
     async def connect(self):
         # TODO: Connect
-        
-        r = await self.http.get_gateway_bot()
+
+        r = await self.state.http.get_gateway_bot()
         gateway_info = await r.json()
         gateway_url = gateway_info["url"]
-        
+
         if self.shard_count is None:
             self.shard_count = gateway_info["shards"]
-        
+
         session_start_limit = gateway_info["session_start_limit"]
         self.max_concurrency = session_start_limit["max_concurrency"]
 
         for shard_id in range(self.shard_count):
-            shard = Shard(gateway=self, gateway_url=gateway_url, shard_id=shard_id, shard_count=self.shard_count, error_callback=None, message_callback=None, http=self.http)
+            shard = Shard(
+                self.state,
+                gateway_url,
+                shard_id,
+            )
             await shard.connect()
             self.shards.append(shard)
 
