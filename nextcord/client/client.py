@@ -52,4 +52,11 @@ class Client(BaseClient):
         await self.state.gateway.connect()
 
     def run(self) -> None:
-        self.state.loop.run_until_complete(self.connect())
+        try:
+            self.state.loop.run_until_complete(self.connect())
+        except KeyboardInterrupt:
+            self.state.loop.run_until_complete(self.close())
+
+    async def close(self):
+        await self.state.http.close()
+        await self.state.gateway.close()

@@ -224,6 +224,9 @@ class HTTPClient(http.HTTPClient):
     async def ws_connect(self, url) -> ClientWebSocketResponse:
         return await self._session.ws_connect(url)
 
+    async def close(self):
+        await self._session.close()
+
     # Wrappers around the http methods
     async def get_gateway_bot(self):
         route = Route("GET", "/gateway/bot")

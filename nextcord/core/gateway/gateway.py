@@ -87,3 +87,7 @@ class Gateway(GatewayProtocol):
 
     def get_identify_ratelimiter(self, shard_id):
         return self._identify_ratelimits[shard_id % self.max_concurrency]
+
+    async def close(self):
+        for shard in self.shards + self._pending_shard_set:
+            await shard.close()

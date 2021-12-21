@@ -64,3 +64,7 @@ class Shard(ShardProtocol):
         async with self._ratelimiter:
             self.logger.debug("> %s", data)
             await self._ws.send_str(json.dumps(data))
+
+    async def close(self):
+        if self._ws is not None:
+            await self._ws.close()
