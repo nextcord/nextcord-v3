@@ -1,40 +1,30 @@
-.. nextcord documentation master file, created by
-   sphinx-quickstart on Sun Dec  5 16:40:28 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Welcome To Nextcord
+===================
 
-Welcome to nextcord's documentation!
-====================================
+.. TODO: Add features, a tagline
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+Get Started
+-----------
 
+First Time? Here's the place to get started:
 
+.. TODO: Add intro, migrating, logging, quickstart, examples
 
-Indices and tables
-==================
+Get Help
+--------
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Having an issue? Here are some resources for you:
 
-This is a codeblock style test:
--------------------------------
+.. TODO: faq
 
-.. code-block:: python3
+- Ask and hang out in our :resource:`discord server <discord>`
+- If you know what you want, try the :ref:`index <genindex>` or :ref:`searching <search`.
+- Report a bug or problem in the :resource:`issue tracker <issues>`
+- Ask in the GitHub :resource:`discussions page <discussions>`
 
-   from typing import Iterator
+Meta
+----
 
-   # This is an example
-   class Math:
-      @staticmethod
-      def fib(n: int) -> Iterator[int]:
-         """ Fibonacci series up to n """
-         a, b = 0, 1
-         while a < n:
-            yield a
-            a, b = b, a + b
+If you are looking for something related to nextcord itself:
 
-   result = sum(Math.fib(42))
-   print("The answer is {}".format(result))
+.. TODO: changelog, migrating

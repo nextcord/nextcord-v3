@@ -105,9 +105,24 @@ autodoc_typehints = "none"
 
 autodoc_member_order = "alphabetical"
 
+default_dark_mode = True
+
+html_theme_options = {
+    "light_css_variables": {
+        "color-brand-primary": "#4C8CBF",
+        "color-brand-content": "#306998",
+        "color-admonition-background": "blue",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#306998",
+        "color-brand-content": "#FFE871",
+        "color-admonition-background": "yellow",
+    },
+    "sidebar_hide_name": True,
+}
 
 resource_links = {
-    "discord": "https://discord.gg/nextcord",
+    "discord": "https://discord.gg/J7utzGhHJV",
     "issues": "https://github.com/nextcord-v3/issues",
     "discussions": "https://github.com/nextcord-v3/discussions",
     "examples": f"https://github.com/nextcord-v3/tree/{branch}/examples",
