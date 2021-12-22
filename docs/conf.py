@@ -60,9 +60,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 autodoc_default_options = {"members": True, "show-inheritance": True}
 
-# TODO: uncomment on requirements.txt
-# with open("../requirements.txt") as f:
-#     autodoc_mock_imports = f.readlines()
+with open("../requirements.txt") as f:
+    autodoc_mock_imports = ["aiohttp>=3.6.0,<4.0.0"]
 
 
 # -- Options for HTML output -------------------------------------------------
