@@ -42,7 +42,7 @@ class Gateway(GatewayProtocol):
         self._error_future: Future = Future()
 
         # Ratelimiting
-        self._identify_ratelimits = defaultdict(lambda: TimesPer(1, 1))
+        self._identify_ratelimits = defaultdict(lambda: TimesPer(1, 5))
         self.max_concurrency: Optional[int] = None
 
         # Shard count
