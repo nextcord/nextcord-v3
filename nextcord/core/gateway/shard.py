@@ -73,6 +73,8 @@ class Shard(ShardProtocol):
         self.ready.set()
 
     async def send(self, data: dict):
+        if self._ws is None:
+            raise NextcordException("Cannot send message to uninitialized WS")
         async with self._ratelimiter:
             self.logger.debug("> %s", data)
             await self._ws.send_str(json.dumps(data))
