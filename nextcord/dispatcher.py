@@ -61,3 +61,22 @@ class Dispatcher:
             logger.debug("Predicate succeeded, calling listener")
             self.predicates[event_name].remove((predicate, listener))
             self.loop.create_task(listener(*args))  # TODO: Should we just await here?
+
+    def listen(self, event_name: Any = None):
+        # TODO: Fix type
+        def inner(coro: Any):
+            if event_name is None:
+                self.global_listeners.append(coro)
+            else:
+                self.listeners[event_name].append(coro)
+
+        return inner
+
+    def add_predicate(self, event_name: Any, predicate: Any, callback: Any):
+        self.predicates[event_name].append((predicate, callback))
+
+    def add_listener(self, event_name: Any, listener: Any):
+        if event_name is None:
+            self.global_listeners.append(listener)
+        else:
+            self.listeners[event_name].append(listener)
