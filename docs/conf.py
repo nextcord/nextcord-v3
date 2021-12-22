@@ -78,7 +78,6 @@ html_theme = "furo"
 html_static_path = ["_static"]
 
 
-html_logo = "_static/padded_logo.png"
 html_favicon = "_static/logo.ico"
 pygments_style = "light.CustomLightStyle"
 pygments_dark_style = "dark.CustomDarkStyle"
