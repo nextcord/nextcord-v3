@@ -19,7 +19,6 @@ DEALINGS IN THE SOFTWARE.
 """
 from __future__ import annotations
 
-import asyncio
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -27,9 +26,8 @@ from .protocols.client import Client as BaseClient
 from .state import State
 
 if TYPE_CHECKING:
-    from typing import Any, Optional
+    from typing import Optional
 
-    from ..core.protocols.http import HTTPClient
     from ..type_sheet import TypeSheet
 
 
