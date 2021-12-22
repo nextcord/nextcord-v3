@@ -17,9 +17,32 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+from __future__ import annotations
 
-from typing import Protocol
+from typing import TYPE_CHECKING
+
+from attr import dataclass
+
+if TYPE_CHECKING:
+    from typing import Type
+
+    from .core.gateway.gateway import GatewayProtocol
+    from .core.protocols.http import Bucket, HTTPClient
 
 
-class Client(Protocol):
-    ...
+@dataclass
+class TypeSheet:
+    http_client: Type[HTTPClient]
+    http_bucket: Type[Bucket]
+    gateway: Type[GatewayProtocol]
+
+    @classmethod
+    def default(cls) -> "TypeSheet":
+        # TODO: Possibly make this cleaner?
+        from .core.gateway.gateway import Gateway
+        from .core.http import Bucket as DefaultBucket
+        from .core.http import HTTPClient as DefaultHTTPClient
+
+        return cls(
+            http_client=DefaultHTTPClient, http_bucket=DefaultBucket, gateway=Gateway
+        )

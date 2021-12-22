@@ -17,53 +17,45 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+from __future__ import annotations
 
-from typing import Protocol, Literal, Any, Optional
+import asyncio
+from logging import getLogger
+from typing import TYPE_CHECKING
+
+from .protocols.client import Client as BaseClient
+from .state import State
+
+if TYPE_CHECKING:
+    from typing import Any, Optional
+
+    from ..core.protocols.http import HTTPClient
+    from ..type_sheet import TypeSheet
 
 
-class Route(Protocol):
+logger = getLogger(__name__)
+
+
+class Client(BaseClient):
     def __init__(
         self,
-        method: Literal[
-            "GET",
-            "HEAD",
-            "POST",
-            "PUT",
-            "DELETE",
-            "CONNECT",
-            "OPTIONS",
-            "TRACE",
-            "PATCH",
-        ],
-        path: str,
-        **parameters: dict[str, Any]
-    ):
-        self.method: str
-        self.path: str
-        self.bucket: str
-        self.guild_id: Optional[int]
-        self.channel_id: Optional[int]
-        self.webhook_id: Optional[str]
-        self.webhook_token: Optional[str]
+        token: str,
+        *,
+        type_sheet: Optional[TypeSheet] = None,
+        intents: Optional[int] = None,
+        shard_count: Optional[int] = None,
+    ) -> None:
+        self.state: State = State(type_sheet, token, intents, shard_count)
 
+    async def connect(self) -> None:
+        await self.state.gateway.connect()
 
-class Bucket(Protocol):
-    def __init__(self, route: Route):
-        self.limit: Optional[int]
-        self.remaining: Optional[int]
-        self.reset_at: Optional[float]
+    def run(self) -> None:
+        try:
+            self.state.loop.run_until_complete(self.connect())
+        except KeyboardInterrupt:
+            self.state.loop.run_until_complete(self.close())
 
-    async def __aenter__(self):
-        ...
-
-    async def __aexit__(self, exc_type, exc, tb):
-        ...
-
-
-class HTTPClient(Protocol):
-    def __init__(self, token: Optional[str] = None):
-        self.base_url: str
-        self.version: int
-
-    async def request(self, route: Route, **kwargs):
-        ...
+    async def close(self):
+        await self.state.http.close()
+        await self.state.gateway.close()

@@ -1,36 +1,47 @@
-"""
-The MIT License (MIT)
-Copyright (c) 2021-present vcokltfre & tag-epic
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-"""
+# The MIT License (MIT)
+#
+# Copyright (c) 2021-present vcokltfre & tag-epic
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
-from aiohttp.client_reqrep import ClientResponse
-from . import __version__
-from .protocols import http
-from .exceptions import DiscordException
+from __future__ import annotations
 
-from typing import Any, Literal, Optional
-from asyncio import Future, Lock, get_event_loop
-from aiohttp import ClientSession
+from asyncio import Future, get_event_loop
 from collections import defaultdict
 from logging import getLogger
 from time import time
+from typing import TYPE_CHECKING
 
-logger = getLogger("nextcord.http")
+from aiohttp import ClientSession
+from aiohttp.client_reqrep import ClientResponse
+
+from nextcord.client.state import State
+
+from .. import __version__
+from ..exceptions import CloudflareBanException, DiscordException, HTTPException
+from ..type_sheet import TypeSheet
+from ..utils import json
+from .protocols import http
+
+if TYPE_CHECKING:
+    from typing import Any, Literal, Optional
+
+logger = getLogger(__name__)
 
 
 class Route(http.Route):
@@ -51,6 +62,7 @@ class Route(http.Route):
         **parameters: Any,
     ):
         self.method = method
+        self.unformatted_path = path
         self.path = path.format(**parameters)
 
         self.guild_id: Optional[int] = parameters.get("guild_id")
@@ -60,9 +72,7 @@ class Route(http.Route):
 
     @property
     def bucket(self) -> str:
-        return "{}/{};{}/{}".format(
-            self.guild_id, self.channel_id, self.webhook_id, self.webhook_token
-        )
+        return f"{self.method}:{self.unformatted_path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
 
 
 class Bucket(http.Bucket):
@@ -74,7 +84,6 @@ class Bucket(http.Bucket):
         self._pending: list[Future] = []
         self._reserved: int = 0
         self._loop = get_event_loop()
-        self._pending_reset: bool = False  # Prevents duplicate reset tasks
 
     @property
     def remaining(self) -> Optional[int]:
@@ -83,27 +92,25 @@ class Bucket(http.Bucket):
     @remaining.setter
     def remaining(self, new_value: int):
         self._remaining = new_value
-        if new_value == 0 and not self._pending_reset:
+        if new_value == 0:
             self._pending_reset = True
             sleep_time = self.reset_at - time()
-            print(sleep_time)
             self._loop.call_later(sleep_time, self._reset)
 
     def _reset(self):
-        print("Reset called")
         self.remaining = self.limit
 
-        for future in self._pending:
-            if self.remaining is not None and self.remaining <= 0:
-                break
+        for _ in range(self._calculated_remaining):
+            try:
+                future = self._pending.pop(0)
+            except IndexError:
+                break  # No more pendings, ignore
             future.set_result(None)
-            self._pending.remove(future)
-        self._pending_reset = False
 
     @property
     def _calculated_remaining(self) -> int:
         if self.remaining is None:
-            return 1
+            return 1  # We have no data, let's just assume we have one request so we can fetch the info.
         return self.remaining - self._reserved
 
     async def __aenter__(self) -> "Bucket":
@@ -115,7 +122,7 @@ class Bucket(http.Bucket):
             future = Future()
             self._pending.append(future)
             logger.debug(
-                f"Waiting for {str(self)} to clear up. {len(self._pending)} pending"
+                "Waiting for %s to clear up. %s pending", str(self), len(self._pending)
             )
             await future
         self._reserved += 1
@@ -128,23 +135,33 @@ class Bucket(http.Bucket):
 
 
 class HTTPClient(http.HTTPClient):
-    def __init__(self, token: Optional[str] = None):
+    def __init__(
+        self,
+        state: State,
+        *,
+        max_retries: int = 5,
+    ):
         self.version = 9
-        self.api_base = "https://discord.com/api/v{}".format(self.version)
+        self.api_base = f"https://discord.com/api/v" + str(self.version)
 
-        self._global_lock = Bucket(Route("POST", "/global"))
-        self._webhook_global_lock = Bucket(Route("POST", "/global/webhook"))
-        self._session = ClientSession()
-        self._buckets: dict[str, Bucket] = {}
-        self._http_errors = defaultdict((lambda: DiscordException), {})
+        self.state = state
+
+        self.max_retries = max_retries
+        self._global_lock = self.state.type_sheet.http_bucket(Route("POST", "/global"))
+        self._webhook_global_lock = self.state.type_sheet.http_bucket(
+            Route("POST", "/global/webhook")
+        )
+        self._session = ClientSession(json_serialize=json.dumps)
+        self._buckets: dict[str, http.Bucket] = {}
+        self._http_errors = defaultdict((lambda: HTTPException), {})
 
         self._headers = {
             "User-Agent": "DiscordBot (https://github.com/nextcord/nextcord, {})".format(
                 __version__
             )
         }
-        if token:
-            self._headers["Authorization"] = "Bot " + token
+        if self.state.token:
+            self._headers["Authorization"] = "Bot " + self.state.token
 
     async def request(
         self,
@@ -162,14 +179,14 @@ class HTTPClient(http.HTTPClient):
             headers = {}
         headers |= self._headers
 
-        for _ in range(5):
+        for _ in range(self.max_retries):
             async with global_lock:
                 bucket_str = route.bucket
                 bucket = self._buckets.get(bucket_str)
 
                 if bucket is None:
-                    self._buckets[bucket_str] = Bucket(route)
-                    bucket = self._buckets[bucket_str]  # TODO: Possibly shorten this?
+                    bucket = self.state.type_sheet.http_bucket(route)
+                    self._buckets[bucket_str] = bucket
 
                 async with bucket:
                     r = await self._session.request(
@@ -178,7 +195,7 @@ class HTTPClient(http.HTTPClient):
                         headers=headers,
                         **kwargs,
                     )
-                logger.debug(f"{route.method} {route.path}")
+                logger.debug("%s %s", route.method, route.path)
 
                 try:
                     bucket.reset_at = float(r.headers["X-RateLimit-Reset"])
@@ -190,12 +207,29 @@ class HTTPClient(http.HTTPClient):
 
                 if (status := r.status) >= 300:
                     if status == 429:
+                        if "via" not in r.headers.keys():
+                            raise
                         logger.debug("Ratelimit exceeded")
                         continue
-                    raise self._http_errors[status](await r.text())
+                    error = await r.json()
+                    raise self._http_errors[status](
+                        r.status, error["code"], error["message"]
+                    )
 
                 return r
 
         raise DiscordException(
             "Ratelimiting failed 5 times. This should only happen if you are running multiple bots with the same IP."
         )
+
+    async def ws_connect(self, url) -> ClientWebSocketResponse:
+        return await self._session.ws_connect(url)
+
+    async def close(self):
+        await self._session.close()
+
+    # Wrappers around the http methods
+    async def get_gateway_bot(self):
+        route = Route("GET", "/gateway/bot")
+
+        return await self.request(route)

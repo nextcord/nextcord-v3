@@ -18,7 +18,24 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+from __future__ import annotations
 
-__version__ = "3.0.0a"
+from typing import TYPE_CHECKING, Protocol
 
-from .client.client import Client
+if TYPE_CHECKING:
+    from typing import Any, Optional
+
+    from nextcord.type_sheet import TypeSheet
+
+
+class Client(Protocol):
+    def __init__(
+        self, *, type_sheet: Optional[TypeSheet] = None, intents: Optional[Any] = None
+    ):
+        ...
+
+    async def connect(self, token: str) -> None:
+        ...
+
+    def run(self, token: str) -> None:
+        ...

@@ -9,7 +9,9 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
-      - name: Install Black
-        run: pip install black
-      - name: Run black --check .
-        run: black --check .
+      - name: Install dependencies
+        run: pip install black isort
+      - name: Run black
+        run: black . --target-version py39 --diff --check
+      - name: Run isort
+        run: isort . --check --diff --profile black

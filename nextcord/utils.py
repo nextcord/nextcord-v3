@@ -18,13 +18,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 
-from .protocols.gateway import GatewayProtocol
-from typing import TYPE_CHECKING
+__all__ = ("json",)
 
-if TYPE_CHECKING:
-    from .protocols.client import Client
-
-
-class Gateway(GatewayProtocol):
-    def __init__(self, client: Client, status, presence):
-        ...
+try:
+    import orjson as json
+except ModuleNotFoundError:
+    import json

@@ -1,7 +1,5 @@
 # The MIT License (MIT)
-#
 # Copyright (c) 2021-present vcokltfre & tag-epic
-#
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
 # to deal in the Software without restriction, including without limitation
@@ -19,6 +17,45 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-__version__ = "3.0.0a"
 
-from .client.client import Client
+from __future__ import annotations
+
+import time
+from asyncio import Future
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Optional
+
+
+class TimesPer:
+    def __init__(self, limit: int, per: int) -> None:
+        self.limit: int = limit
+        self.per: int = per
+        self.reset_at: Optional[float] = None
+        self.current: int = self.limit
+
+        self._reserved: list[Future] = []
+
+    async def __aenter__(self) -> "TimesPer":
+        current_time = time.time()
+        if self.reset_at is None:
+            self.reset_at = 0
+        if self.reset_at < current_time:
+            self.reset_at = current_time + self.per
+            self.current = self.limit
+
+            for _ in range(self.limit):
+                try:
+                    self._reserved.pop().set_result(None)
+                except IndexError:
+                    break
+
+        if self.current == 0:
+            self._reserved.append(future := Future())
+            await future
+
+        return self
+
+    async def __aexit__(self, *_) -> None:
+        ...
