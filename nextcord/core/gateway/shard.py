@@ -17,16 +17,17 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
-from asyncio.locks import Event
 
-from logging import getLogger
-from nextcord.exceptions import NextcordException
-from nextcord.dispatcher import Dispatcher
-from typing import TYPE_CHECKING
 import zlib
+from asyncio.locks import Event
+from logging import getLogger
 from sys import platform
+from typing import TYPE_CHECKING
+
 from aiohttp import WSMsgType
-from ...utils import json
+
+from nextcord.dispatcher import Dispatcher
+from nextcord.exceptions import NextcordException
 
 from ...client.state import State
 from ...utils import json
@@ -38,7 +39,8 @@ if TYPE_CHECKING:
 
     from aiohttp import ClientWebSocketResponse
 
-ZLIB_SUFFIX = b'\x00\x00\xff\xff'
+ZLIB_SUFFIX = b"\x00\x00\xff\xff"
+
 
 class Shard(ShardProtocol):
     def __init__(
@@ -63,7 +65,6 @@ class Shard(ShardProtocol):
 
         self.logger = getLogger(f"nextcord.shard.{self.shard_id}")
 
-
     async def connect(self):
         self._ws = await self.state.http.ws_connect(self.gateway_url)
         self.state.loop.create_task(self._receive_loop())
@@ -73,6 +74,8 @@ class Shard(ShardProtocol):
         self.ready.set()
 
     async def send(self, data: dict):
+        if self._ws is None:
+            raise NextcordException("Cannot send message to uninitialized WS")
         async with self._ratelimiter:
             self.logger.debug("> %s", data)
             await self._ws.send_str(json.dumps(data))
@@ -105,24 +108,23 @@ class Shard(ShardProtocol):
         buffer.extend(data)
         return self._zlib.decompress(buffer)
 
-        
-
     async def close(self):
         if self._ws is not None:
             await self._ws.close()
-    
+
     # Wrappers
     async def identify(self):
-        await self.send({
-            "op": 2,
-            "d": {
-                "token": self.state.token,
-                "intents": self.state.intents,
-                "properties": {
-                    "$os": platform,
-                    "$browser": "nextcord",
-                    "$device": "nextcord"
-                }
+        await self.send(
+            {
+                "op": 2,
+                "d": {
+                    "token": self.state.token,
+                    "intents": self.state.intents,
+                    "properties": {
+                        "$os": platform,
+                        "$browser": "nextcord",
+                        "$device": "nextcord",
+                    },
+                },
             }
-        })
-
+        )

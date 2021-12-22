@@ -34,6 +34,7 @@ class Dispatcher:
     def __init__(self):
         self.listeners: dict[Any, list[Any]] = defaultdict(lambda: [])
         self.predicates: dict[Any, list[tuple[Any, Any]]] = defaultdict(lambda: [])
+        self.global_listeners: list[Any] = []
         self.loop = get_event_loop()
 
     def dispatch(self, event_name: Any, *args):
@@ -47,6 +48,9 @@ class Dispatcher:
             self.loop.create_task(
                 self._dispatch_predicate(predicate_info, event_name, *args)
             )
+
+        for listener in self.global_listeners:
+            self.loop.create_task(listener(event_name, *args))
 
     async def _dispatch_predicate(self, predicate_info: Any, event_name: Any, *args):
         predicate = predicate_info[0]
