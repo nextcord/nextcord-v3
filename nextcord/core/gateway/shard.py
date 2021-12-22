@@ -20,18 +20,20 @@ from __future__ import annotations
 
 import zlib
 from asyncio.locks import Event
+from asyncio.tasks import sleep
 from logging import getLogger
+from random import random
 from sys import platform
 from typing import TYPE_CHECKING
 
 from aiohttp import WSMsgType
 
-from nextcord.dispatcher import Dispatcher
-from nextcord.exceptions import NextcordException
-
 from ...client.state import State
+from ...dispatcher import Dispatcher
+from ...exceptions import NextcordException
 from ...utils import json
 from ..ratelimiter import TimesPer
+from .enums import CloseCodeEnum, OpcodeEnum
 from .protocols.shard import ShardProtocol
 
 if TYPE_CHECKING:
@@ -52,26 +54,45 @@ class Shard(ShardProtocol):
         self.shard_id: int = shard_id
         self.gateway_url = "wss://gateway.discord.gg?v=9&compress=zlib-stream"
 
+        # Events
         self.ready: Event = Event()
 
         # Internal things
         self._ws: Optional[ClientWebSocketResponse] = None
         self._ratelimiter = TimesPer(120, 60)
         self._zlib = zlib.decompressobj()
+        self._seq: Optional[int] = None
+        self._session_id: Optional[str] = None
+
+        # Heartbeating related
+        self._has_acknowledged_heartbeat = True
 
         # Dispatchers
         self.opcode_dispatcher = Dispatcher()
         self.event_dispatcher = Dispatcher()
+        self.disconnect_dispatcher = Dispatcher()
+
+        # Register handles
+        self.opcode_dispatcher.add_listener(OpcodeEnum.HELLO.value, self.handle_hello)
+        self.opcode_dispatcher.add_listener(
+            OpcodeEnum.HEARTBEAT_ACK.value, self.handle_heartbeat_ack
+        )
+        self.opcode_dispatcher.add_listener(None, self.handle_set_sequence)
+        self.event_dispatcher.add_listener("READY", self.handle_ready)
 
         self.logger = getLogger(f"nextcord.shard.{self.shard_id}")
 
     async def connect(self):
         self._ws = await self.state.http.ws_connect(self.gateway_url)
         self.state.loop.create_task(self._receive_loop())
-        async with self.state.gateway.get_identify_ratelimiter(self.shard_id):
-            await self.identify()
-        self.logger.info("Connected to the gateway")
-        self.ready.set()
+        if self._session_id is None:
+            async with self.state.gateway.get_identify_ratelimiter(self.shard_id):
+                await self.identify()
+            self.logger.info("Connected to the gateway")
+            self.ready.set()
+        else:
+            await self.resume()
+            self.logger.info("Reconnected to the gateway")
 
     async def send(self, data: dict):
         if self._ws is None:
@@ -91,12 +112,33 @@ class Shard(ShardProtocol):
                     continue
                 data = json.loads(raw_data.decode("utf-8"))
                 self.logger.debug("< %s", data)
-                self.opcode_dispatcher.dispatch(data["op"], data["d"])
+                self.opcode_dispatcher.dispatch(data["op"], data)
 
-                if data["op"] == 0:
+                if data["op"] == OpcodeEnum.DISPATCH.value:
                     self.event_dispatcher.dispatch(data["t"], data["d"])
             else:
                 self.logger.debug("Unknown message type %s", message.type)
+        close_code = self._ws.close_code
+        try:
+            close_code_enum = CloseCodeEnum(self._ws.close_code)
+        except ValueError:
+            self.logger.warning("Disconnect with unknown close code %s", close_code)
+        else:
+            self.logger.info(
+                "Disconnected with code %s (%s)", close_code, close_code_enum
+            )
+        self.disconnect_dispatcher.dispatch(close_code)
+
+    async def heartbeat_loop(self, heartbeat_interval: float):
+        if self._ws is None:
+            raise NextcordException("WS was None when HB loop started")
+        while not self._ws.closed:
+            if not self._has_acknowledged_heartbeat:
+                await self._ws.close(code=1008)
+                return
+            self._has_acknowledged_heartbeat = False
+            await self.send({"op": OpcodeEnum.HEARTBEAT.value, "d": self._seq})
+            await sleep(heartbeat_interval)
 
     def _decompress(self, data):
         buffer = bytearray()
@@ -112,11 +154,47 @@ class Shard(ShardProtocol):
         if self._ws is not None:
             await self._ws.close()
 
+    # Handles
+    async def handle_hello(self, data: dict):
+        heartbeat_interval = data["d"]["heartbeat_interval"] / 1000
+
+        intitial_wait_time = heartbeat_interval * random()
+        await sleep(intitial_wait_time)
+        self.state.loop.create_task(self.heartbeat_loop(heartbeat_interval))
+
+    async def handle_set_sequence(self, _: int, data: dict):
+        if (seq := data["s"]) is not None:
+            self.logger.debug("Updated sequence number to %s", seq)
+            self._seq = seq
+
+    async def handle_heartbeat_ack(self, _: dict):
+        self._has_acknowledged_heartbeat = True
+
+    async def handle_disconnect(self, close_code: CloseCodeEnum):
+        if close_code == CloseCodeEnum.CLOSED_BY_CLIENT:
+            return  # This should be handled seperatley
+
+        # Reconnectable close codes (w/ same session)
+        if close_code not in (
+            CloseCodeEnum.NO_INFO,
+            CloseCodeEnum.UNKNOWN_ERROR,
+            CloseCodeEnum.UNKNOWN_OPCODE,
+            CloseCodeEnum.DECODE_ERROR,
+            CloseCodeEnum.ALREADY_AUTHENTICATED,
+        ):
+            self._seq = None
+            self._session_id = None
+            return
+
+    async def handle_ready(self, data: dict):
+        self._session_id = data["session_id"]
+        self.logger.debug("Session id set!")
+
     # Wrappers
     async def identify(self):
         await self.send(
             {
-                "op": 2,
+                "op": OpcodeEnum.IDENTIFY.value,
                 "d": {
                     "token": self.state.token,
                     "intents": self.state.intents,
@@ -125,6 +203,18 @@ class Shard(ShardProtocol):
                         "$browser": "nextcord",
                         "$device": "nextcord",
                     },
+                },
+            }
+        )
+
+    async def resume(self):
+        await self.send(
+            {
+                "op": OpcodeEnum.RESUME.value,
+                "d": {
+                    "token": self.state.token,
+                    "session_id": self._session_id,
+                    "seq": self._seq,
                 },
             }
         )

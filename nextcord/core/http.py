@@ -30,15 +30,16 @@ from typing import TYPE_CHECKING
 from aiohttp import ClientSession
 from aiohttp.client_reqrep import ClientResponse
 
-from nextcord.client.state import State
-
 from .. import __version__
+from ..client.state import State
 from ..exceptions import CloudflareBanException, DiscordException, HTTPException
 from ..utils import json
 from .protocols import http
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Optional
+
+    from aiohttp import ClientWebSocketResponse
 
 logger = getLogger(__name__)
 
@@ -222,7 +223,9 @@ class HTTPClient(http.HTTPClient):
         )
 
     async def ws_connect(self, url) -> ClientWebSocketResponse:
-        return await self._session.ws_connect(url)
+        return await self._session.ws_connect(
+            url, max_msg_size=0, autoclose=False, timeout=30.0, headers=self._headers
+        )
 
     async def close(self):
         await self._session.close()
