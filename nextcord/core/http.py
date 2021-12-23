@@ -224,7 +224,7 @@ class HTTPClient(http.HTTPClient):
 
     async def ws_connect(self, url) -> ClientWebSocketResponse:
         return await self._session.ws_connect(
-            url, max_msg_size=0, autoclose=False, timeout=30.0, headers=self._headers
+            url, max_msg_size=0, autoclose=False, headers=self._headers
         )
 
     async def close(self):
