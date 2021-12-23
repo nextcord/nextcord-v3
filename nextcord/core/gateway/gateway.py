@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from asyncio.futures import Future
 from collections import defaultdict
+from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ...client.state import State
@@ -31,6 +32,8 @@ from .shard import Shard
 
 if TYPE_CHECKING:
     from typing import Any, Optional
+
+logger = getLogger(__name__)
 
 
 class Gateway(GatewayProtocol):
@@ -56,8 +59,6 @@ class Gateway(GatewayProtocol):
         self.recreating_shards: bool = False
 
     async def connect(self):
-        # TODO: Connect
-
         r = await self.state.http.get_gateway_bot()
         gateway_info = await r.json()
 
@@ -72,7 +73,7 @@ class Gateway(GatewayProtocol):
                 self.state,
                 shard_id,
             )
-            await shard.connect()
+            self.state.loop.create_task(shard.connect())
             self.shards.append(shard)
 
         await self._error_future
