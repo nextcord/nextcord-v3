@@ -28,18 +28,20 @@ from typing import TYPE_CHECKING
 
 from aiohttp import WSMsgType
 
-from ...client.state import State
 from ...dispatcher import Dispatcher
 from ...exceptions import NextcordException
 from ...utils import json
 from ..ratelimiter import TimesPer
 from .enums import CloseCodeEnum, OpcodeEnum
+from .exceptions import ShardClosedException
 from .protocols.shard import ShardProtocol
 
 if TYPE_CHECKING:
     from typing import Optional
 
     from aiohttp import ClientWebSocketResponse
+    from logging import Logger
+    from ...client.state import State
 
 ZLIB_SUFFIX = b"\x00\x00\xff\xff"
 
@@ -59,18 +61,18 @@ class Shard(ShardProtocol):
 
         # Internal things
         self._ws: Optional[ClientWebSocketResponse] = None
-        self._ratelimiter = TimesPer(120, 60)
+        self._ratelimiter: TimesPer = TimesPer(120, 60)
         self._zlib = zlib.decompressobj()
         self._seq: Optional[int] = None
         self._session_id: Optional[str] = None
 
         # Heartbeating related
-        self._has_acknowledged_heartbeat = True
+        self._has_acknowledged_heartbeat: bool = True
 
         # Dispatchers
-        self.opcode_dispatcher = Dispatcher()
-        self.event_dispatcher = Dispatcher()
-        self.disconnect_dispatcher = Dispatcher()
+        self.opcode_dispatcher: Dispatcher = Dispatcher()
+        self.event_dispatcher: Dispatcher = Dispatcher()
+        self.disconnect_dispatcher: Dispatcher = Dispatcher()
 
         # Register handles
         self.opcode_dispatcher.add_listener(OpcodeEnum.HELLO.value, self.handle_hello)
@@ -80,14 +82,18 @@ class Shard(ShardProtocol):
         self.opcode_dispatcher.add_listener(None, self.handle_set_sequence)
         self.event_dispatcher.add_listener("READY", self.handle_ready)
 
-        self.logger = getLogger(f"nextcord.shard.{self.shard_id}")
+        self.logger: Logger = getLogger(f"nextcord.shard.{self.shard_id}")
 
     async def connect(self):
         self._ws = await self.state.http.ws_connect(self.gateway_url)
         self.state.loop.create_task(self._receive_loop())
         if self._session_id is None:
             async with self.state.gateway.get_identify_ratelimiter(self.shard_id):
-                await self.identify()
+                try:
+                    await self.identify()
+                except ShardClosedException:
+                    self.logger.debug("Ignoring identify as shard closed")
+                    return
             self.logger.info("Connected to the gateway")
             self.ready.set()
         else:
@@ -97,9 +103,14 @@ class Shard(ShardProtocol):
     async def send(self, data: dict):
         if self._ws is None:
             raise NextcordException("Cannot send message to uninitialized WS")
+        if self._ws.closed:
+            raise NextcordException("Cannot send message to closed WS")
         async with self._ratelimiter:
             self.logger.debug("> %s", data)
-            await self._ws.send_str(json.dumps(data))
+            try:
+                await self._ws.send_str(json.dumps(data))
+            except ConnectionResetError:
+                raise ShardClosedException()
 
     async def _receive_loop(self):
         if self._ws is None:
@@ -122,7 +133,8 @@ class Shard(ShardProtocol):
         try:
             close_code_enum = CloseCodeEnum(self._ws.close_code)
         except ValueError:
-            self.logger.warning("Disconnect with unknown close code %s", close_code)
+            if close_code is not None:
+                self.logger.warning("Disconnect with unknown close code %s", close_code)
         else:
             self.logger.info(
                 "Disconnected with code %s (%s)", close_code, close_code_enum
@@ -203,7 +215,7 @@ class Shard(ShardProtocol):
                         "$browser": "nextcord",
                         "$device": "nextcord",
                     },
-                    "shard": (self.shard_id, self.state.shard_count)
+                    "shard": (self.shard_id, self.state.shard_count),
                 },
             }
         )
