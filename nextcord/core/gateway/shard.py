@@ -33,14 +33,15 @@ from ...exceptions import NextcordException
 from ...utils import json
 from ..ratelimiter import TimesPer
 from .enums import CloseCodeEnum, OpcodeEnum
-from .exceptions import ShardClosedException
+from .exceptions import PrivilegedIntentsRequiredException, ShardClosedException
 from .protocols.shard import ShardProtocol
 
 if TYPE_CHECKING:
+    from logging import Logger
     from typing import Optional
 
     from aiohttp import ClientWebSocketResponse
-    from logging import Logger
+
     from ...client.state import State
 
 ZLIB_SUFFIX = b"\x00\x00\xff\xff"
@@ -180,23 +181,43 @@ class Shard(ShardProtocol):
             self._seq = seq
 
     async def handle_heartbeat_ack(self, _: dict):
+        self.state.gateway.shard_error_dispatcher.dispatch("critical_error", PrivilegedIntentsRequiredException())
         self._has_acknowledged_heartbeat = True
 
-    async def handle_disconnect(self, close_code: CloseCodeEnum):
-        if close_code == CloseCodeEnum.CLOSED_BY_CLIENT:
-            return  # This should be handled seperatley
-
-        # Reconnectable close codes (w/ same session)
-        if close_code not in (
-            CloseCodeEnum.NO_INFO,
-            CloseCodeEnum.UNKNOWN_ERROR,
-            CloseCodeEnum.UNKNOWN_OPCODE,
-            CloseCodeEnum.DECODE_ERROR,
-            CloseCodeEnum.ALREADY_AUTHENTICATED,
-        ):
-            self._seq = None
-            self._session_id = None
+    async def handle_disconnect(self, close_code: Optional[int]):
+        if close_code == None:
+            # We closed somewhere else, let's let the other place worry about reconnecting
             return
+        # TODO: Handle too few shards error if it exists??
+        if close_code == CloseCodeEnum.AUTHENTICATION_FAILED:
+            # TODO: Error
+            ...
+        if close_code == CloseCodeEnum.DISALLOWED_INTENTS:
+            # TODO: Error
+            self.state.gateway.shard_error_dispatcher.dispatch("critical_error", PrivilegedIntentsRequiredException())
+            ...
+        # Errors which should never happen
+        if close_code in [
+            CloseCodeEnum.SHARDING_REQUIRED,
+            CloseCodeEnum.INVALID_SHARD,
+            CloseCodeEnum.INVALID_API_VERSION,
+        ]:
+            # TODO: Error? These should never happen with the current sharding implementation although throwing a custom error might be a good idea?
+            raise NextcordException(
+                f"Unexpected discord close code: {CloseCodeEnum(close_code)}"
+            )
+
+        # Errors which require a new session
+        if close_code in [
+            CloseCodeEnum.INVALID_SEQ,
+            CloseCodeEnum.SESSION_TIMED_OUT,
+        ]:
+            # Cannot connect back with same session, reconnect (w/new session)
+            self._session_id = None
+            self._seq = None
+
+        # Reconnect and hope it works
+        await self.connect()
 
     async def handle_ready(self, data: dict):
         self._session_id = data["session_id"]

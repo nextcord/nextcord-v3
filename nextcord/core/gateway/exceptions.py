@@ -20,6 +20,17 @@
 from ...exceptions import NextcordException
 
 
-class ShardClosedException(NextcordException):
+class GatewayException(NextcordException):
+    ...
+
+
+class ShardClosedException(GatewayException):
     def __init__(self) -> None:
         super().__init__("You cannot send from a closed shard.")
+
+
+class PrivilegedIntentsRequiredException(GatewayException):
+    def __init__(self) -> None:
+        super().__init__(
+            "You cannot connect to the gateway with intents you are not authorized for. To fix this go to your developer dashboard and turn on the appropriate privileged intent switches. If you are verified, please contact support with your intent request."
+        )
