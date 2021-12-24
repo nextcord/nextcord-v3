@@ -188,6 +188,9 @@ class Shard(ShardProtocol):
         if close_code == None:
             # We closed somewhere else, let's let the other place worry about reconnecting
             return
+        if not self.state.gateway.should_reconnect(self):
+            # We shouldnt reconnect
+            return 
         # TODO: Handle too few shards error if it exists??
         if close_code == CloseCodeEnum.AUTHENTICATION_FAILED:
             # TODO: Error
