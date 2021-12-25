@@ -189,14 +189,16 @@ class Shard(ShardProtocol):
             return
         if not self.state.gateway.should_reconnect(self):
             # We shouldnt reconnect
-            return 
+            return
         # TODO: Handle too few shards error if it exists??
         if close_code == CloseCodeEnum.AUTHENTICATION_FAILED:
             # TODO: Error
             ...
         if close_code == CloseCodeEnum.DISALLOWED_INTENTS:
             # TODO: Error
-            self.state.gateway.shard_error_dispatcher.dispatch("critical_error", PrivilegedIntentsRequiredException())
+            self.state.gateway.shard_error_dispatcher.dispatch(
+                "critical_error", PrivilegedIntentsRequiredException()
+            )
             ...
         # Errors which should never happen
         if close_code in [
