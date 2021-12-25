@@ -181,7 +181,6 @@ class Shard(ShardProtocol):
             self._seq = seq
 
     async def handle_heartbeat_ack(self, _: dict):
-        self.state.gateway.shard_error_dispatcher.dispatch("critical_error", PrivilegedIntentsRequiredException())
         self._has_acknowledged_heartbeat = True
 
     async def handle_disconnect(self, close_code: Optional[int]):
