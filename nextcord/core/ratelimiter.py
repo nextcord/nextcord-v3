@@ -22,40 +22,56 @@ from __future__ import annotations
 
 import time
 from asyncio import Future
+from asyncio.events import AbstractEventLoop, get_event_loop
+from logging import getLogger
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Optional
 
+logger = getLogger(__name__)
+
 
 class TimesPer:
-    def __init__(self, limit: int, per: int) -> None:
+    def __init__(self, limit: int, per: float) -> None:
         self.limit: int = limit
-        self.per: int = per
-        self.reset_at: Optional[float] = None
+        self.per: float = per
         self.current: int = self.limit
 
         self._reserved: list[Future] = []
+        self.loop: AbstractEventLoop = get_event_loop()
+        self.pending_reset: bool = False
 
     async def __aenter__(self) -> "TimesPer":
-        current_time = time.time()
-        if self.reset_at is None:
-            self.reset_at = 0
-        if self.reset_at < current_time:
-            self.reset_at = current_time + self.per
-            self.current = self.limit
-
-            for _ in range(self.limit):
-                try:
-                    self._reserved.pop().set_result(None)
-                except IndexError:
-                    break
-
         if self.current == 0:
             self._reserved.append(future := Future())
             await future
+        self.current -= 1
+
+        if not self.pending_reset:
+            self.pending_reset = True
+            self.loop.call_later(self.per, self.reset)
 
         return self
 
     async def __aexit__(self, *_) -> None:
         ...
+
+    def reset(self) -> None:
+        logger.debug("Ratelimiter reset!")
+        current_time = time.time()
+        self.reset_at = current_time + self.per
+        self.current = self.limit
+
+        # Release pending
+        for _ in range(self.limit):
+            try:
+                self._reserved.pop().set_result(None)
+            except IndexError:
+                break
+
+        if len(self._reserved):
+            self.pending_reset = True
+            self.loop.call_later(self.per, self.reset)
+        else:
+            self.pending_reset = False

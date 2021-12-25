@@ -17,35 +17,20 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from enum import IntEnum
+from ...exceptions import NextcordException
 
 
-class OpcodeEnum(IntEnum):
-    DISPATCH = 0
-    HEARTBEAT = 1
-    IDENTIFY = 2
-    PRESENCE_UPDATE = 3
-    VOICE_STATE_UPDATE = 4
-    RESUME = 6
-    RECONNECT = 7
-    REQUEST_GUILD_MEMBERS = 8
-    INVALID_SESSION = 9
-    HELLO = 10
-    HEARTBEAT_ACK = 11
+class GatewayException(NextcordException):
+    ...
 
 
-class CloseCodeEnum(IntEnum):
-    UNKNOWN_ERROR = 4000
-    UNKNOWN_OPCODE = 4001
-    DECODE_ERROR = 4002
-    NOT_AUTHENTICATED = 4003
-    AUTHENTICATION_FAILED = 4004
-    ALREADY_AUTHENTICATED = 4005
-    INVALID_SEQ = 4007
-    RATELIMITED = 4008
-    SESSION_TIMED_OUT = 4009
-    INVALID_SHARD = 4010
-    SHARDING_REQUIRED = 4011
-    INVALID_API_VERSION = 4012
-    INVALID_INTENTS = 4013
-    DISALLOWED_INTENTS = 4014
+class ShardClosedException(GatewayException):
+    def __init__(self) -> None:
+        super().__init__("You cannot send from a closed shard.")
+
+
+class PrivilegedIntentsRequiredException(GatewayException):
+    def __init__(self) -> None:
+        super().__init__(
+            "You cannot connect to the gateway with intents you are not authorized for. To fix this go to your developer dashboard and turn on the appropriate privileged intent switches. If you are verified, please contact support with your intent request."
+        )

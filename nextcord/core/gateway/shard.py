@@ -28,18 +28,21 @@ from typing import TYPE_CHECKING
 
 from aiohttp import WSMsgType
 
-from ...client.state import State
 from ...dispatcher import Dispatcher
 from ...exceptions import NextcordException
 from ...utils import json
 from ..ratelimiter import TimesPer
 from .enums import CloseCodeEnum, OpcodeEnum
+from .exceptions import PrivilegedIntentsRequiredException, ShardClosedException
 from .protocols.shard import ShardProtocol
 
 if TYPE_CHECKING:
+    from logging import Logger
     from typing import Optional
 
     from aiohttp import ClientWebSocketResponse
+
+    from ...client.state import State
 
 ZLIB_SUFFIX = b"\x00\x00\xff\xff"
 
@@ -59,18 +62,18 @@ class Shard(ShardProtocol):
 
         # Internal things
         self._ws: Optional[ClientWebSocketResponse] = None
-        self._ratelimiter = TimesPer(120, 60)
+        self._ratelimiter: TimesPer = TimesPer(120, 60)
         self._zlib = zlib.decompressobj()
         self._seq: Optional[int] = None
         self._session_id: Optional[str] = None
 
         # Heartbeating related
-        self._has_acknowledged_heartbeat = True
+        self._has_acknowledged_heartbeat: bool = True
 
         # Dispatchers
-        self.opcode_dispatcher = Dispatcher()
-        self.event_dispatcher = Dispatcher()
-        self.disconnect_dispatcher = Dispatcher()
+        self.opcode_dispatcher: Dispatcher = Dispatcher()
+        self.event_dispatcher: Dispatcher = Dispatcher()
+        self.disconnect_dispatcher: Dispatcher = Dispatcher()
 
         # Register handles
         self.opcode_dispatcher.add_listener(OpcodeEnum.HELLO.value, self.handle_hello)
@@ -80,14 +83,18 @@ class Shard(ShardProtocol):
         self.opcode_dispatcher.add_listener(None, self.handle_set_sequence)
         self.event_dispatcher.add_listener("READY", self.handle_ready)
 
-        self.logger = getLogger(f"nextcord.shard.{self.shard_id}")
+        self.logger: Logger = getLogger(f"nextcord.shard.{self.shard_id}")
 
     async def connect(self):
         self._ws = await self.state.http.ws_connect(self.gateway_url)
         self.state.loop.create_task(self._receive_loop())
         if self._session_id is None:
             async with self.state.gateway.get_identify_ratelimiter(self.shard_id):
-                await self.identify()
+                try:
+                    await self.identify()
+                except ShardClosedException:
+                    self.logger.debug("Ignoring identify as shard closed")
+                    return
             self.logger.info("Connected to the gateway")
             self.ready.set()
         else:
@@ -97,9 +104,14 @@ class Shard(ShardProtocol):
     async def send(self, data: dict):
         if self._ws is None:
             raise NextcordException("Cannot send message to uninitialized WS")
+        if self._ws.closed:
+            raise NextcordException("Cannot send message to closed WS")
         async with self._ratelimiter:
             self.logger.debug("> %s", data)
-            await self._ws.send_str(json.dumps(data))
+            try:
+                await self._ws.send_str(json.dumps(data))
+            except ConnectionResetError:
+                raise ShardClosedException()
 
     async def _receive_loop(self):
         if self._ws is None:
@@ -122,7 +134,8 @@ class Shard(ShardProtocol):
         try:
             close_code_enum = CloseCodeEnum(self._ws.close_code)
         except ValueError:
-            self.logger.warning("Disconnect with unknown close code %s", close_code)
+            if close_code is not None:
+                self.logger.warning("Disconnect with unknown close code %s", close_code)
         else:
             self.logger.info(
                 "Disconnected with code %s (%s)", close_code, close_code_enum
@@ -168,23 +181,46 @@ class Shard(ShardProtocol):
             self._seq = seq
 
     async def handle_heartbeat_ack(self, _: dict):
+        self.state.gateway.shard_error_dispatcher.dispatch("critical_error", PrivilegedIntentsRequiredException())
         self._has_acknowledged_heartbeat = True
 
-    async def handle_disconnect(self, close_code: CloseCodeEnum):
-        if close_code == CloseCodeEnum.CLOSED_BY_CLIENT:
-            return  # This should be handled seperatley
-
-        # Reconnectable close codes (w/ same session)
-        if close_code not in (
-            CloseCodeEnum.NO_INFO,
-            CloseCodeEnum.UNKNOWN_ERROR,
-            CloseCodeEnum.UNKNOWN_OPCODE,
-            CloseCodeEnum.DECODE_ERROR,
-            CloseCodeEnum.ALREADY_AUTHENTICATED,
-        ):
-            self._seq = None
-            self._session_id = None
+    async def handle_disconnect(self, close_code: Optional[int]):
+        if close_code == None:
+            # We closed somewhere else, let's let the other place worry about reconnecting
             return
+        if not self.state.gateway.should_reconnect(self):
+            # We shouldnt reconnect
+            return 
+        # TODO: Handle too few shards error if it exists??
+        if close_code == CloseCodeEnum.AUTHENTICATION_FAILED:
+            # TODO: Error
+            ...
+        if close_code == CloseCodeEnum.DISALLOWED_INTENTS:
+            # TODO: Error
+            self.state.gateway.shard_error_dispatcher.dispatch("critical_error", PrivilegedIntentsRequiredException())
+            ...
+        # Errors which should never happen
+        if close_code in [
+            CloseCodeEnum.SHARDING_REQUIRED,
+            CloseCodeEnum.INVALID_SHARD,
+            CloseCodeEnum.INVALID_API_VERSION,
+        ]:
+            # TODO: Error? These should never happen with the current sharding implementation although throwing a custom error might be a good idea?
+            raise NextcordException(
+                f"Unexpected discord close code: {CloseCodeEnum(close_code)}"
+            )
+
+        # Errors which require a new session
+        if close_code in [
+            CloseCodeEnum.INVALID_SEQ,
+            CloseCodeEnum.SESSION_TIMED_OUT,
+        ]:
+            # Cannot connect back with same session, reconnect (w/new session)
+            self._session_id = None
+            self._seq = None
+
+        # Reconnect and hope it works
+        await self.connect()
 
     async def handle_ready(self, data: dict):
         self._session_id = data["session_id"]
@@ -203,6 +239,7 @@ class Shard(ShardProtocol):
                         "$browser": "nextcord",
                         "$device": "nextcord",
                     },
+                    "shard": (self.shard_id, self.state.shard_count),
                 },
             }
         )
