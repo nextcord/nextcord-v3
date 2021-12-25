@@ -22,5 +22,6 @@ class RatelimitException(DiscordException):
 class CloudflareBanException(RatelimitException):
     def __init__(self) -> None:
         super().__init__(
-            "You have been banned by cloudflare. See https://discord.dev/topics/rate-limits#invalid-request-limit-aka-cloudflare-bans"
+            "You have been banned by Cloudflare. "
+            "See https://discord.dev/topics/rate-limits#invalid-request-limit-aka-cloudflare-bans"
         )

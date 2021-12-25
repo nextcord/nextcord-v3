@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
     from nextcord.type_sheet import TypeSheet
 
-    from .http import HTTPClient
+    from ...http import HTTPClient
 
 
 class GatewayProtocol(Protocol):

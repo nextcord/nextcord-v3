@@ -32,8 +32,8 @@ logger = getLogger(__name__)
 
 class Dispatcher:
     def __init__(self):
-        self.listeners: dict[Any, list[Any]] = defaultdict(lambda: [])
-        self.predicates: dict[Any, list[tuple[Any, Any]]] = defaultdict(lambda: [])
+        self.listeners: dict[Any, list[Any]] = defaultdict(list)
+        self.predicates: dict[Any, list[tuple[Any, Any]]] = defaultdict(list)
         self.global_listeners: list[Any] = []
         self.loop = get_event_loop()
 

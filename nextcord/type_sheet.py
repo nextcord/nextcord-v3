@@ -25,6 +25,7 @@ from attr import dataclass
 
 if TYPE_CHECKING:
     from typing import Type, TypeVar
+
     T = TypeVar("T")
 
     from .core.gateway.gateway import GatewayProtocol
