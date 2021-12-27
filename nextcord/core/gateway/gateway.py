@@ -23,8 +23,9 @@ from __future__ import annotations
 from asyncio.futures import Future
 from collections import defaultdict
 from logging import getLogger
-from nextcord.dispatcher import Dispatcher
 from typing import TYPE_CHECKING
+
+from nextcord.dispatcher import Dispatcher
 
 from ..ratelimiter import TimesPer
 from .protocols.gateway import GatewayProtocol
@@ -33,8 +34,9 @@ from .shard import Shard
 if TYPE_CHECKING:
     from typing import Any, Optional
 
-    from ...client.state import State
     from nextcord.exceptions import NextcordException
+
+    from ...client.state import State
 
 logger = getLogger(__name__)
 
@@ -65,9 +67,10 @@ class Gateway(GatewayProtocol):
         # Dispatchers
         self.shard_error_dispatcher: Dispatcher = Dispatcher()
 
-
         # Handles
-        self.shard_error_dispatcher.add_listener("critical_error", self.handle_critical_error)
+        self.shard_error_dispatcher.add_listener(
+            "critical_error", self.handle_critical_error
+        )
         self.shard_error_dispatcher.add_listener("rescale", None)
 
     async def connect(self):
@@ -100,8 +103,9 @@ class Gateway(GatewayProtocol):
             return True
         if shard in self.shards:
             return False
-        
+
         return True
+
     async def close(self):
         for shard in self.shards + self._pending_shard_set:
             await shard.close()
