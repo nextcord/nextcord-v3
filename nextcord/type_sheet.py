@@ -24,7 +24,9 @@ from typing import TYPE_CHECKING
 from attr import dataclass
 
 if TYPE_CHECKING:
-    from typing import Type
+    from typing import Type, TypeVar
+
+    T = TypeVar("T")
 
     from .core.gateway.gateway import GatewayProtocol
     from .core.protocols.http import Bucket, HTTPClient
@@ -37,7 +39,7 @@ class TypeSheet:
     gateway: Type[GatewayProtocol]
 
     @classmethod
-    def default(cls) -> "TypeSheet":
+    def default(cls: Type[T]) -> T:
         # TODO: Possibly make this cleaner?
         from .core.gateway.gateway import Gateway
         from .core.http import Bucket as DefaultBucket

@@ -142,7 +142,7 @@ class HTTPClient(http.HTTPClient):
         max_retries: int = 5,
     ):
         self.version = 9
-        self.api_base = f"https://discord.com/api/v" + str(self.version)
+        self.api_base = f"https://discord.com/api/v{self.version}"
 
         self.state = state
 
@@ -161,7 +161,7 @@ class HTTPClient(http.HTTPClient):
             )
         }
         if self.state.token:
-            self._headers["Authorization"] = "Bot " + self.state.token
+            self._headers["Authorization"] = f"Bot {self.state.token}"
 
     async def request(
         self,
