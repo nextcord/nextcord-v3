@@ -61,24 +61,27 @@ class Embed:
         self.url = str(url) if url is not None else None
         self.color = int(color) if color is not None else None
         self.timestamp = timestamp
-        # self.footer = footer
-        # self.image = image
-        # self.thumbnail = thumbnail
-        # self.video = video
-        # self.provider = provider
-        # self.author = author
-        self.fields = fields
 
-    def add_field(self, *, name: str, value: str, inline: bool = None) -> None:
-        self.fields.append(EmbedField(name=name, value=value, inline=inline))
+        self.footer = footer if isinstance(footer, EmbedFooter) else None
+        self.image = image if isinstance(image, EmbedImage) else None
+        self.thumbnail = thumbnail if isinstance(thumbnail, EmbedThumbnail) else None
+        self.video = video if isinstance(video, EmbedVideo) else None
+        self.provider = provider if isinstance(provider, EmbedProvider) else None
+        self.author = author if isinstance(author, EmbedAuthor) else None
+        self.fields = fields if isinstance(fields, list) else None
 
-    def insert_field(
-        self, index: int, *, name: str, value: str, inline: bool = None
+    def add_field(
+        self, name: str, value: str, *, inline: bool = None, position: int = None
     ) -> None:
-        self.fields.insert(index, EmbedField(name=name, value=value, inline=inline))
+        if position is not None:
+            self.fields.insert(
+                position, EmbedField(name=name, value=value, inline=inline)
+            )
+        else:
+            self.fields.append(EmbedField(name=name, value=value, inline=inline))
 
-    def set_field(
-        self, index: int, *, name: str, value: str, inline: bool = None
+    def edit_field(
+        self, index: int, name: str, value: str, *, inline: bool = None
     ) -> None:
         if len(self.fields) < index:
             index = len(self.fields)
@@ -90,6 +93,3 @@ class Embed:
             del self.fields[index]
         except IndexError:
             pass
-
-    def clear_fields(self):
-        self.fields = []
