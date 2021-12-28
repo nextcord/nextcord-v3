@@ -196,10 +196,8 @@ class Shard(ShardProtocol):
             ...
         if close_code == CloseCodeEnum.DISALLOWED_INTENTS:
             # TODO: Error
-            self.state.gateway.shard_error_dispatcher.dispatch(
-                "critical_error", PrivilegedIntentsRequiredException()
-            )
-            ...
+            await self.state.client.close(PrivilegedIntentsRequiredException())
+            return
         # Errors which should never happen
         if close_code in [
             CloseCodeEnum.SHARDING_REQUIRED,

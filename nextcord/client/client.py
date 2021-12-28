@@ -18,17 +18,19 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 from __future__ import annotations
+from asyncio.futures import Future
 
 from logging import getLogger
+from nextcord.exceptions import NextcordException
 from typing import TYPE_CHECKING
 
 from .protocols.client import Client as BaseClient
 from .state import State
+from ..type_sheet import TypeSheet
 
 if TYPE_CHECKING:
     from typing import Optional
 
-    from ..type_sheet import TypeSheet
 
 
 logger = getLogger(__name__)
@@ -43,10 +45,18 @@ class Client(BaseClient):
         intents: Optional[int] = None,
         shard_count: Optional[int] = None,
     ) -> None:
-        self.state: State = State(type_sheet, token, intents, shard_count)
+        if type_sheet is None:
+            type_sheet = TypeSheet.default()
+        self.state: State = State(self, type_sheet, token, intents, shard_count)
+        self._error_future: Future = Future()
+        self._error: Optional[NextcordException] = None
 
     async def connect(self) -> None:
         await self.state.gateway.connect()
+
+        await self._error_future
+        if self._error:
+            raise self._error from None
 
     def run(self) -> None:
         try:
@@ -54,6 +64,8 @@ class Client(BaseClient):
         except KeyboardInterrupt:
             self.state.loop.run_until_complete(self.close())
 
-    async def close(self):
+    async def close(self, error: Optional[NextcordException] = None):
         await self.state.http.close()
         await self.state.gateway.close()
+        self._error = error
+        self._error_future.set_result(None)
