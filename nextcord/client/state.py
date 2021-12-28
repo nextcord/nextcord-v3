@@ -25,16 +25,19 @@ from ..type_sheet import TypeSheet
 
 if TYPE_CHECKING:
     from typing import Optional
+    from .protocols.client import Client
 
 
 class State:
     def __init__(
         self,
+        client: Client,
         type_sheet: TypeSheet,
         token: str,
         intents: int,
         shard_count: Optional[int],
     ):
+        self.client: Client = client
         self.type_sheet: TypeSheet = type_sheet
         self.loop: AbstractEventLoop = get_event_loop()
 
