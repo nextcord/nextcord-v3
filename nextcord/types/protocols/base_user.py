@@ -22,8 +22,6 @@ from __future__ import annotations
 from logging import getLogger
 from typing import TYPE_CHECKING, Optional
 
-from .protocols.base_user import BaseUser
-
 if TYPE_CHECKING:
     from .client.state import State
     from .snowflake import Snowflake
@@ -32,47 +30,47 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-class ClientUser(BaseUser):
-    __slots__ = ("mfa_enabled", "locale", "verified", "email", "flags", "bio")
+class BaseUser:
+    __slots__ = (
+        "id",
+        "username",
+        "discriminator",
+        "_avatar",
+        "bot",
+        "system",
+        "_banner",
+        "_accent_color",
+        "_premium_type",
+        "_public_flags",
+        "_state",
+    )
 
     if TYPE_CHECKING:
-        mfa_enabled: bool
-        locale: str
-        verified: bool
-        flags: int
-        bio: str
+        id: Snowflake
+        username: str
+        discriminator: str
+        _avatar: Optional[str]
+
+        bot: bool
+        system: bool
+        _banner: Optional[str]
+        _accent_color: Optional[int]
+        _premium_type: Optional[PremiumType]
+        _public_flags: int
+        _state: State
 
     def __init__(self, *, state: State, data: dict):
-        super().__init__(state=state, data=data)
+        self._state = state
+        self._update(data)
 
     def _update(self, data):
-        super()._update(data)
-        self.mfa_enabled = data.get("mfa_enabled")
-        self.locale = data.get("locale")
-        self.verified = data.get("verified")
-        self.flags = data.get("flags")
-        self.bio = data.get("bio")
+        self.id = data["id"]
+        self.username = data["username"]
+        self.discriminator = data["discriminator"]
+        self._avatar = data["avatar"]
 
-    async def edit(self, *, username: str = None, avatar: bytes = None):
-        payload = {}
-        if username is not None:
-            payload["username"] = username
-
-        if avatar is not None:
-            payload["avatar"] = ...  # TODO: convert bytes to base64 image format
-
-        await self._state.http  # TODO: HTTP not implemented yet
-
-    async def get_guilds(
-        self, *, before: Snowflake = None, after: Snowflake = None, limit: int = None
-    ):
-        ...
-
-    async def _get_guild_member(self, *, guild_id: Snowflake):
-        ...
-
-    async def _leave_guild(self, *, guild_id: Snowflake):
-        ...
-
-    async def _create_dm(self, *, recipient_id: Snowflake):
-        ...
+        self.bot = data.get("bot")
+        self.system = data.get("system")
+        self._banner = data.get("banner")
+        self._accent_color = data.get("accent_color")
+        self._public_flags = data.get("public_flags")
