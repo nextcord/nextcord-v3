@@ -19,6 +19,7 @@ DEALINGS IN THE SOFTWARE.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from logging import getLogger
 from typing import TYPE_CHECKING, Optional
 
@@ -29,11 +30,52 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-(EmbedFooter, EmbedImage, EmbedThumbnail, EmbedVideo, EmbedProvider, EmbedAuthor) = None
+@dataclass(frozen=True)
+class EmbedFile:
+    url: str
+    proxy_url: Optional[str] = None
+    height: Optional[int] = None
+    width: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class EmbedThumbnail(EmbedFile):
+    ...
+
+
+@dataclass(frozen=True)
+class EmbedVideo(EmbedFile):
+    url: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class EmbedImage(EmbedFile):
+    ...
+
+
+@dataclass(frozen=True)
+class EmbedProvider:
+    name: Optional[str] = None
+    url: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class EmbedAuthor:
+    name: str
+    url: Optional[str] = None
+    icon_url: Optional[str] = None
+    proxy_icon_url: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class EmbedFooter:
+    text: str
+    icon_url: Optional[str] = None
+    proxy_icon_url: Optional[str] = None
 
 
 class EmbedField:
-    def __init__(self, *, name: str, value: str, inline: bool = None):
+    def __init__(self, name: str, value: str, *, inline: bool = None):
         self.name = str(name)
         self.value = str(value)
         self.inline = bool(inline)
@@ -68,25 +110,25 @@ class Embed:
         self.video = video if isinstance(video, EmbedVideo) else None
         self.provider = provider if isinstance(provider, EmbedProvider) else None
         self.author = author if isinstance(author, EmbedAuthor) else None
-        self.fields = fields if isinstance(fields, list) else None
+        self.fields = fields if isinstance(fields, list) else []
 
     def add_field(
         self, name: str, value: str, *, inline: bool = None, position: int = None
     ) -> None:
         if position is not None:
-            self.fields.insert(
-                position, EmbedField(name=name, value=value, inline=inline)
-            )
+            self.fields.insert(position, EmbedField(name, value, inline=inline))
         else:
-            self.fields.append(EmbedField(name=name, value=value, inline=inline))
+            self.fields.append(EmbedField(name, value, inline=inline))
 
     def edit_field(
-        self, index: int, name: str, value: str, *, inline: bool = None
+        self, index: int, name: str = None, value: str = None, *, inline: bool = None
     ) -> None:
-        if len(self.fields) < index:
-            index = len(self.fields)
-
-        self.fields[index] = EmbedField(name=name, value=value, inline=inline)
+        if name is not None:
+            self.fields[index].name = name
+        if value is not None:
+            self.fields[index].value = value
+        if inline is not None:
+            self.fields[index].inline = inline
 
     def remove_field(self, *, index: int) -> None:
         try:
