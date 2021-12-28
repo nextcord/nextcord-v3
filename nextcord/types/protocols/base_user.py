@@ -23,14 +23,14 @@ from logging import getLogger
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from .client.state import State
-    from .snowflake import Snowflake
+    from ...client.state import State
+    from ..snowflake import Snowflake
 
 
 logger = getLogger(__name__)
 
 
-class BaseUser:
+class UserProtocol:
     __slots__ = (
         "id",
         "username",

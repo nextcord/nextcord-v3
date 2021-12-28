@@ -22,17 +22,17 @@ from __future__ import annotations
 from logging import getLogger
 from typing import TYPE_CHECKING, Optional
 
-from .protocols.base_user import BaseUser
+from .protocols.base_user import UserProtocol
 
 if TYPE_CHECKING:
-    from .client.state import State
+    from ..client.state import State
     from .snowflake import Snowflake
 
 
 logger = getLogger(__name__)
 
 
-class ClientUser(BaseUser):
+class ClientUser(UserProtocol):
     __slots__ = ("mfa_enabled", "locale", "verified", "email", "flags", "bio")
 
     if TYPE_CHECKING:
