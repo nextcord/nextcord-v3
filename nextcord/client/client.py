@@ -22,13 +22,12 @@ from __future__ import annotations
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from ..type_sheet import TypeSheet
 from .protocols.client import Client as BaseClient
 from .state import State
-from ..type_sheet import TypeSheet
 
 if TYPE_CHECKING:
     from typing import Optional
-
 
 
 logger = getLogger(__name__)
