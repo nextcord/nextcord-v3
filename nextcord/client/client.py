@@ -24,11 +24,11 @@ from typing import TYPE_CHECKING
 
 from .protocols.client import Client as BaseClient
 from .state import State
+from ..type_sheet import TypeSheet
 
 if TYPE_CHECKING:
     from typing import Optional
 
-    from ..type_sheet import TypeSheet
 
 
 logger = getLogger(__name__)
@@ -40,9 +40,11 @@ class Client(BaseClient):
         token: str,
         *,
         type_sheet: Optional[TypeSheet] = None,
-        intents: Optional[int] = None,
+        intents: Optional[int] = 0,
         shard_count: Optional[int] = None,
     ) -> None:
+        if type_sheet is None:
+            type_sheet = TypeSheet.default()
         self.state: State = State(type_sheet, token, intents, shard_count)
 
     async def connect(self) -> None:

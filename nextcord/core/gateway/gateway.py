@@ -80,6 +80,8 @@ class Gateway(GatewayProtocol):
         if self.shard_count is None:
             self.shard_count = gateway_info["shards"]
 
+        self.state.shard_count = self.shard_count
+
         session_start_limit = gateway_info["session_start_limit"]
         self.max_concurrency = session_start_limit["max_concurrency"]
 
