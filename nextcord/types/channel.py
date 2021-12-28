@@ -17,8 +17,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+from __future__ import annotations
 
-from typing import Union
+from logging import getLogger
+from typing import TYPE_CHECKING
 
-Snowflake = Union[str, int]
-SnowflakeArray = list[Snowflake]
+if TYPE_CHECKING:
+    from ..client.state import State
+    from .snowflake import Snowflake
+
+
+class Channel:
+    def __init__(self, *, state: State, data: dict):
+        pass
