@@ -82,6 +82,21 @@ class EmbedField:
 
 
 class Embed:
+    __slots__ = (
+        "title",
+        "description",
+        "url",
+        "timestamp",
+        "color",
+        "footer",
+        "image",
+        "thumbnail",
+        "author",
+        "fields",
+        "provider",
+        "video",
+    )
+
     def __init__(
         self,
         *,
@@ -93,8 +108,6 @@ class Embed:
         footer: Optional[EmbedFooter] = None,
         image: Optional[EmbedImage] = None,
         thumbnail: Optional[EmbedThumbnail] = None,
-        video: Optional[EmbedVideo] = None,
-        provider: Optional[EmbedProvider] = None,
         author: Optional[EmbedAuthor] = None,
         fields: Optional[list[EmbedField]] = [],
     ):
@@ -107,8 +120,6 @@ class Embed:
         self.footer = footer if isinstance(footer, EmbedFooter) else None
         self.image = image if isinstance(image, EmbedImage) else None
         self.thumbnail = thumbnail if isinstance(thumbnail, EmbedThumbnail) else None
-        self.video = video if isinstance(video, EmbedVideo) else None
-        self.provider = provider if isinstance(provider, EmbedProvider) else None
         self.author = author if isinstance(author, EmbedAuthor) else None
         self.fields = fields if isinstance(fields, list) else []
 
@@ -135,3 +146,28 @@ class Embed:
             del self.fields[index]
         except IndexError:
             pass
+
+    @property
+    def video(self):
+        return self._video
+
+    @property
+    def provider(self):
+        return self._provider
+
+    def from_dict(self, data: dict):
+        for key, value in data.items():
+            if key in ["video", "provider"]:
+                setattr(self, "_" + key, value)
+            elif key in self.__slots__:
+                setattr(self, key, value)
+            else:
+                continue  # TODO: Unknown key, should it raise an error?
+
+    def to_dict(self):
+        data = {}
+        for key in self.__slots__:
+            if key in ["video", "provider"]:
+                data[key] = getattr(self, "_" + key)
+            else:
+                data[key] = getattr(self, key)
