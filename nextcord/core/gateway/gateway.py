@@ -19,14 +19,14 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
-import asyncio
 
+import asyncio
 from asyncio.futures import Future
 from collections import defaultdict
 from logging import getLogger
-from nextcord.core.gateway.exceptions import NotEnoughShardsException
 from typing import TYPE_CHECKING
 
+from nextcord.core.gateway.exceptions import NotEnoughShardsException
 from nextcord.dispatcher import Dispatcher
 
 from ..ratelimiter import TimesPer
@@ -114,7 +114,6 @@ class Gateway(GatewayProtocol):
             return
         self.recreating_shards = True
         # TODO: Rescale.
-
 
     async def handle_shard_event(self, *args):
         self.dispatcher.dispatch(*args)

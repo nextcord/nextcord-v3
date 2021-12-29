@@ -25,6 +25,7 @@ from ..type_sheet import TypeSheet
 
 if TYPE_CHECKING:
     from typing import Optional
+
     from .protocols.client import Client
 
 
