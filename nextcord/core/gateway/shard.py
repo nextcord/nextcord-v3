@@ -64,6 +64,7 @@ class Shard(ShardProtocol):
         self._ws: Optional[ClientWebSocketResponse] = None
         self._ratelimiter: TimesPer = TimesPer(120, 60)
         self._zlib = zlib.decompressobj()
+        self._buffer = bytearray()
         self._seq: Optional[int] = None
         self._session_id: Optional[str] = None
 
@@ -154,14 +155,15 @@ class Shard(ShardProtocol):
             await sleep(heartbeat_interval)
 
     def _decompress(self, data):
-        buffer = bytearray()
+
+        self._buffer.extend(data)
 
         if len(data) < 4 or data[-4:] != ZLIB_SUFFIX:
-            self.logger.info("Incorrectly formatted data?")
-            return
+            return  # data is incomplete
 
-        buffer.extend(data)
-        return self._zlib.decompress(buffer)
+        decompressed = self._zlib.decompress(self._buffer)
+        self._buffer = bytearray()  # reset buffer
+        return decompressed
 
     async def close(self):
         if self._ws is not None:

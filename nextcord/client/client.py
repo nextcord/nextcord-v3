@@ -18,19 +18,19 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
 from __future__ import annotations
-from asyncio.futures import Future
 
+from asyncio.futures import Future
 from logging import getLogger
-from nextcord.exceptions import NextcordException
 from typing import TYPE_CHECKING
 
+from nextcord.exceptions import NextcordException
+
+from ..type_sheet import TypeSheet
 from .protocols.client import Client as BaseClient
 from .state import State
-from ..type_sheet import TypeSheet
 
 if TYPE_CHECKING:
     from typing import Optional
-
 
 
 logger = getLogger(__name__)
