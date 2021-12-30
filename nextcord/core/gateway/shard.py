@@ -240,7 +240,7 @@ class Shard(ShardProtocol):
                         "$browser": "nextcord",
                         "$device": "nextcord",
                     },
-                    "shard": (self.shard_id, self.state.shard_count),
+                    "shard": (self.shard_id, self.state.gateway.shard_count),
                 },
             }
         )
