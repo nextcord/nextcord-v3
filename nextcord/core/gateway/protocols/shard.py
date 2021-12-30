@@ -42,4 +42,5 @@ class ShardProtocol(Protocol):
     async def connect(self) -> None:
         ...
 
-    async def send(self, data: dict):
+    async def send(self, data: dict) -> None:
+        ...
