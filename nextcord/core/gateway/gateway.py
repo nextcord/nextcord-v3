@@ -47,6 +47,7 @@ class Gateway(GatewayProtocol):
     def __init__(
         self,
         state: State,
+        shard_count: Optional[int] = None
     ):
         self.state: State = state
         self._error_future: Future = Future()
@@ -57,7 +58,7 @@ class Gateway(GatewayProtocol):
         self.max_concurrency: Optional[int] = None
 
         # Shard count
-        self.shard_count: Optional[int] = self.state.shard_count
+        self.shard_count: Optional[int] = shard_count
         self._shard_count_locked = self.shard_count is not None
 
         # Shard sets
