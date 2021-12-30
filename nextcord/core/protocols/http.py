@@ -45,11 +45,14 @@ class Route(Protocol):
             "PATCH",
         ],
         path: str,
+        *,
+        use_webhook_global: bool = False,
         **parameters: dict[str, Any],
     ):
         self.method: str
         self.path: str
         self.bucket: str
+        self.use_webhook_global: bool
         self.guild_id: Optional[int]
         self.channel_id: Optional[int]
         self.webhook_id: Optional[str]

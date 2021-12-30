@@ -59,11 +59,15 @@ class Route(http.Route):
             "PATCH",
         ],
         path: str,
+        *,
+        use_webhook_global: bool = False,
         **parameters: Any,
     ):
         self.method = method
         self.unformatted_path = path
         self.path = path.format(**parameters)
+
+        self.use_webhook_global = use_webhook_global
 
         self.guild_id: Optional[int] = parameters.get("guild_id")
         self.channel_id: Optional[int] = parameters.get("channel_id")
@@ -167,12 +171,11 @@ class HTTPClient(http.HTTPClient):
         self,
         route: Route,
         *,
-        use_webhook_global=False,
         headers: dict[str, Any] = None,
         **kwargs,
     ) -> ClientResponse:
         global_lock = (
-            self._webhook_global_lock if use_webhook_global else self._global_lock
+            self._webhook_global_lock if route.use_webhook_global else self._global_lock
         )
 
         if headers is None:
