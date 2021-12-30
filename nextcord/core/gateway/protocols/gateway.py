@@ -22,32 +22,33 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
+from nextcord.client.state import State
+from nextcord.dispatcher import Dispatcher
+
 if TYPE_CHECKING:
-    from asyncio import Event
-    from typing import Any, Optional
+    from typing import Optional
 
-    from nextcord.type_sheet import TypeSheet
-
-    from ...http import HTTPClient
+    from .shard import ShardProtocol
 
 
 class GatewayProtocol(Protocol):
     def __init__(
         self,
-        type_sheet: TypeSheet,
-        http: HTTPClient,
-        *,
-        status: Any = None,
-        presence: Any = None,
-        shard_count: Optional[int] = None,
+        state: State,
     ):
-        self.status: Any
-        self.presence: Any
+        self.state: State
         self.shard_count: Optional[int]
-        self.ready: Event
 
-    async def connect(self):
+        self.dispatcher: Dispatcher
+
+    async def connect(self) -> None:
         ...
 
-    async def send(self, data: dict, *, shard_id: int = 0):
+    async def send(self, data: dict, *, shard_id: int = 0) -> None:
+        ...
+
+    def should_reconnect(self, shard: ShardProtocol) -> bool:
+        ...
+
+    async def close(self) -> None:
         ...

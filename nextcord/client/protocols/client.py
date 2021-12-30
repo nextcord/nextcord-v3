@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
+from nextcord.exceptions import NextcordException
+
 if TYPE_CHECKING:
     from typing import Any, Optional
 
@@ -30,12 +32,20 @@ if TYPE_CHECKING:
 
 class Client(Protocol):
     def __init__(
-        self, *, type_sheet: Optional[TypeSheet] = None, intents: Optional[Any] = None
-    ):
+        self,
+        token: str,
+        *,
+        type_sheet: Optional[TypeSheet] = None,
+        intents: Optional[Any] = None,
+        shard_count: Optional[int] = None,
+    ) -> None:
         ...
 
-    async def connect(self, token: str) -> None:
+    async def connect(self) -> None:
         ...
 
-    def run(self, token: str) -> None:
+    def run(self) -> None:
+        ...
+
+    async def close(self, error: Optional[NextcordException] = None) -> None:
         ...
