@@ -32,11 +32,7 @@ if TYPE_CHECKING:
 
 
 class GatewayProtocol(Protocol):
-    def __init__(
-        self,
-        state: State,
-        shard_count: Optional[int] = None
-    ):
+    def __init__(self, state: State, shard_count: Optional[int] = None):
         self.state: State
         self.shard_count: Optional[int]
 
