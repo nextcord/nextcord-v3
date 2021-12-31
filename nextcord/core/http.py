@@ -28,23 +28,25 @@ from time import time
 from typing import TYPE_CHECKING
 
 from aiohttp import ClientSession
-from aiohttp.client_reqrep import ClientResponse
 
 from .. import __version__
-from ..client.state import State
 from ..exceptions import CloudflareBanException, DiscordException, HTTPException
 from ..utils import json
-from .protocols import http
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Optional
 
     from aiohttp import ClientWebSocketResponse
+    from aiohttp.client_reqrep import ClientResponse
+
+    from ..client.state import State
+    from .protocols.http import BucketProtocol, HTTPClientProtocol, RouteProtocol
+
 
 logger = getLogger(__name__)
 
 
-class Route(http.Route):
+class Route(RouteProtocol):
     def __init__(
         self,
         method: Literal[
@@ -79,7 +81,7 @@ class Route(http.Route):
         return f"{self.method}:{self.unformatted_path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
 
 
-class Bucket(http.Bucket):
+class Bucket(BucketProtocol):
     def __init__(self, route: Route):
         self._remaining: Optional[int] = None
         self.limit: Optional[int] = None
@@ -102,7 +104,7 @@ class Bucket(http.Bucket):
             self._loop.call_later(sleep_time, self._reset)
 
     def _reset(self):
-        self.remaining = self.limit
+        self._remaining = self.limit
 
         for _ in range(self._calculated_remaining):
             try:
@@ -138,7 +140,7 @@ class Bucket(http.Bucket):
             self.remaining -= 1
 
 
-class HTTPClient(http.HTTPClient):
+class HTTPClient(HTTPClientProtocol):
     def __init__(
         self,
         state: State,
@@ -156,7 +158,7 @@ class HTTPClient(http.HTTPClient):
             Route("POST", "/global/webhook")
         )
         self._session = ClientSession(json_serialize=json.dumps)
-        self._buckets: dict[str, http.Bucket] = {}
+        self._buckets: dict[str, BucketProtocol] = {}
         self._http_errors = defaultdict((lambda: HTTPException), {})
 
         self._headers = {
