@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal, Optional
 
     from aiohttp import ClientWebSocketResponse
+    from aiohttp.client_reqrep import ClientResponse
 
     from nextcord.type_sheet import TypeSheet
 
@@ -77,8 +78,14 @@ class HTTPClient(Protocol):
         self.base_url: str
         self.version: int
 
-    async def request(self, route: Route, **kwargs):
+    async def request(self, route: Route, **kwargs) -> ClientResponse:
         ...
 
     async def ws_connect(self, url) -> ClientWebSocketResponse:
+        ...
+
+    async def close(self) -> None:
+        ...
+
+    async def get_gateway_bot(self) -> ClientResponse:
         ...
