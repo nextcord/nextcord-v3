@@ -27,7 +27,6 @@ from nextcord.dispatcher import Dispatcher
 
 if TYPE_CHECKING:
     from asyncio import Event
-    from typing import Any
 
 
 class ShardProtocol(Protocol):
