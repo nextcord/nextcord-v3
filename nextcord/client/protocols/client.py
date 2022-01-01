@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from nextcord.type_sheet import TypeSheet
 
 
-class Client(Protocol):
+class ClientProtocol(Protocol):
     def __init__(
         self,
         token: str,

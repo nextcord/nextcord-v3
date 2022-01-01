@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING
 from nextcord.exceptions import NextcordException
 
 from ..type_sheet import TypeSheet
-from .protocols.client import Client as BaseClient
+from .protocols.client import ClientProtocol
 from .state import State
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-class Client(BaseClient):
+class Client(ClientProtocol):
     def __init__(
         self,
         token: str,

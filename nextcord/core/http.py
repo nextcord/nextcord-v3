@@ -32,6 +32,7 @@ from aiohttp import ClientSession
 from .. import __version__
 from ..exceptions import CloudflareBanException, DiscordException, HTTPException
 from ..utils import json
+from .protocols.http import RouteProtocol, BucketProtocol, HTTPClientProtocol
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Optional
@@ -40,7 +41,6 @@ if TYPE_CHECKING:
     from aiohttp.client_reqrep import ClientResponse
 
     from ..client.state import State
-    from .protocols.http import BucketProtocol, HTTPClientProtocol, RouteProtocol
 
 
 logger = getLogger(__name__)
