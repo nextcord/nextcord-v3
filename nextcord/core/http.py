@@ -32,7 +32,7 @@ from aiohttp import ClientSession
 from .. import __version__
 from ..exceptions import CloudflareBanException, DiscordException, HTTPException
 from ..utils import json
-from .protocols.http import RouteProtocol, BucketProtocol, HTTPClientProtocol
+from .protocols.http import BucketProtocol, HTTPClientProtocol, RouteProtocol
 
 if TYPE_CHECKING:
     from typing import Any, Literal, Optional
