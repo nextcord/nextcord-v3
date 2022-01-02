@@ -20,7 +20,6 @@
 # DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
-import asyncio
 from asyncio.futures import Future
 from collections import defaultdict
 from logging import getLogger
@@ -37,6 +36,7 @@ if TYPE_CHECKING:
     from typing import Any, Optional
 
     from nextcord.exceptions import NextcordException
+    from .protocols.shard import ShardProtocol
 
     from ...client.state import State
 
@@ -64,8 +64,8 @@ class Gateway(GatewayProtocol):
         self.recreating_shards: bool = False
 
         # Dispatchers
-        self.shard_error_dispatcher: Dispatcher = Dispatcher()
-        self.dispatcher: Dispatcher = Dispatcher()
+        self.event_dispatcher: Dispatcher = Dispatcher()
+        self.raw_dispatcher: Dispatcher = Dispatcher()
 
     async def connect(self):
         r = await self.state.http.get_gateway_bot()
@@ -82,7 +82,6 @@ class Gateway(GatewayProtocol):
                 self.state,
                 shard_id,
             )
-            shard.event_dispatcher.add_listener(None, self.handle_shard_event)
             self.state.loop.create_task(shard.connect())
             self.shards.append(shard)
 
@@ -111,6 +110,3 @@ class Gateway(GatewayProtocol):
             return
         self.recreating_shards = True
         # TODO: Rescale.
-
-    async def handle_shard_event(self, *args):
-        self.dispatcher.dispatch(*args)

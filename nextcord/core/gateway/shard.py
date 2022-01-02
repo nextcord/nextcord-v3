@@ -24,7 +24,7 @@ from asyncio.tasks import sleep
 from logging import getLogger
 from random import random
 from sys import platform
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import WSMsgType
 
@@ -82,7 +82,9 @@ class Shard(ShardProtocol):
             OpcodeEnum.HEARTBEAT_ACK.value, self.handle_heartbeat_ack
         )
         self.opcode_dispatcher.add_listener(None, self.handle_set_sequence)
+        self.event_dispatcher.add_listener(None, self.handle_raw_dispatch)
         self.event_dispatcher.add_listener("READY", self.handle_ready)
+        self.event_dispatcher.add_listener(None, self.handle_dispatch)
 
         self.logger: Logger = getLogger(f"nextcord.shard.{self.shard_id}")
 
@@ -226,6 +228,12 @@ class Shard(ShardProtocol):
     async def handle_ready(self, data: dict):
         self._session_id = data["session_id"]
         self.logger.debug("Session id set!")
+
+    async def handle_raw_dispatch(self, opcode: int, data: dict):
+        self.state.gateway.raw_dispatcher.dispatch(opcode, self, data)
+
+    async def handle_dispatch(self, event_name: str, data: Any):
+        self.state.gateway.event_dispatcher.dispatch(event_name, self, data)
 
     # Wrappers
     async def identify(self):

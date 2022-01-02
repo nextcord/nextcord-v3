@@ -20,7 +20,7 @@
 # DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from nextcord.client.state import State
 from nextcord.dispatcher import Dispatcher
@@ -36,7 +36,8 @@ class GatewayProtocol(Protocol):
         self.state: State
         self.shard_count: Optional[int]
 
-        self.dispatcher: Dispatcher
+        self.event_dispatcher: Dispatcher
+        self.raw_dispatcher: Dispatcher
 
     async def connect(self) -> None:
         ...
@@ -48,4 +49,10 @@ class GatewayProtocol(Protocol):
         ...
 
     async def close(self) -> None:
+        ...
+
+    def _shard_dispatch(self, event_name: str, shard: ShardProtocol, *args: Any) -> None:
+        ...
+
+    def _shard_raw_dispatch(self, opcode: int, shard: ShardProtocol, *args: Any) -> None:
         ...
