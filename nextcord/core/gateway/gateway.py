@@ -78,7 +78,7 @@ class Gateway(GatewayProtocol):
         self.max_concurrency = session_start_limit["max_concurrency"]
 
         for shard_id in range(self.shard_count):
-            shard = Shard(
+            shard = self.state.type_sheet.shard(
                 self.state,
                 shard_id,
             )
