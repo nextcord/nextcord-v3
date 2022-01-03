@@ -24,7 +24,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..client.state import State
-    from .snowflake import Snowflake
+
+logger = getLogger(__name__)
 
 
 class Channel:

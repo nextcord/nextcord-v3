@@ -155,14 +155,18 @@ class Embed:
     def provider(self):
         return self._provider
 
-    def from_dict(self, data: dict):
+    @classmethod
+    def from_dict(cls, data: dict):
+        embed = cls.__init__()
         for key, value in data.items():
             if key in ["video", "provider"]:
-                setattr(self, "_" + key, value)
-            elif key in self.__slots__:
-                setattr(self, key, value)
+                setattr(embed, "_" + key, value)
+            elif key in embed.__slots__:
+                setattr(embed, key, value)
             else:
                 continue  # TODO: Unknown key, should it raise an error?
+
+        return embed
 
     def to_dict(self):
         data = {}
@@ -171,3 +175,5 @@ class Embed:
                 data[key] = getattr(self, "_" + key)
             else:
                 data[key] = getattr(self, key)
+
+        return data

@@ -25,18 +25,19 @@ from typing import TYPE_CHECKING
 from ...exceptions import InvalidArgument
 
 if TYPE_CHECKING:
-    ...
+    from ..embed import Embed
 
 
 logger = getLogger(__name__)
 
-Embed = None  # TODO: DEFINE
-AllowedMentions = None  # TODO: DEFINE
-MessageReference = None  # TODO: DEFINE
-MessageComponent = None  # TODO: DEFINE
-File = None  # TODO: DEFINE
-PartialAttachment = None  # TODO: DEFINE
-Sticker = None  # TODO: DEFINE
+(
+    AllowedMentions,
+    MessageReference,
+    MessageComponent,
+    File,
+    PartialAttachment,
+    Sticker,
+) = None  # TODO: DEFINE and import
 
 
 class Messageable:
@@ -64,7 +65,7 @@ class Messageable:
             embeds = [embed]
 
         if embeds is not None:
-            ...  # Convert embed objects to json
+            embeds = [emb.to_dict() for emb in embeds]
 
         if file is not None and files is not None:
             raise InvalidArgument("You cannot pass both file and files parameters")
@@ -77,4 +78,4 @@ class Messageable:
         #
         #
 
-        await state.http, sticker_ids  # ...
+        await state, sticker_ids  # ...
