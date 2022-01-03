@@ -22,28 +22,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
+from nextcord.client.state import State
+from nextcord.dispatcher import Dispatcher
+
 if TYPE_CHECKING:
     from asyncio import Event
-    from typing import Any
 
 
 class ShardProtocol(Protocol):
-    def __init__(
-        self,
-        *,
-        gateway_url: str,
-        shard_id: int,
-        shard_count: int,
-        error_callback: Any,
-        message_callback: Any,
-    ) -> None:
+    def __init__(self, state: State, shard_id: int) -> None:
         self.shard_id: int
-        self.shard_count: int
+
         self.ready: Event
 
-        # Callbacks
-        self.error_callback: Any
-        self.message_callback: Any
+        self.opcode_dispatcher: Dispatcher
+        self.event_dispatcher: Dispatcher
 
     async def connect(self) -> None:
+        ...
+
+    async def send(self, data: dict) -> None:
         ...

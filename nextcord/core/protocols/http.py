@@ -26,11 +26,12 @@ if TYPE_CHECKING:
     from typing import Any, Literal, Optional
 
     from aiohttp import ClientWebSocketResponse
+    from aiohttp.client_reqrep import ClientResponse
 
     from nextcord.type_sheet import TypeSheet
 
 
-class Route(Protocol):
+class RouteProtocol(Protocol):
     def __init__(
         self,
         method: Literal[
@@ -45,19 +46,22 @@ class Route(Protocol):
             "PATCH",
         ],
         path: str,
+        *,
+        use_webhook_global: bool = False,
         **parameters: dict[str, Any],
     ):
         self.method: str
         self.path: str
         self.bucket: str
+        self.use_webhook_global: bool
         self.guild_id: Optional[int]
         self.channel_id: Optional[int]
         self.webhook_id: Optional[str]
         self.webhook_token: Optional[str]
 
 
-class Bucket(Protocol):
-    def __init__(self, route: Route):
+class BucketProtocol(Protocol):
+    def __init__(self, route: RouteProtocol):
         self.limit: Optional[int]
         self.remaining: Optional[int]
         self.reset_at: Optional[float]
@@ -69,13 +73,19 @@ class Bucket(Protocol):
         ...
 
 
-class HTTPClient(Protocol):
+class HTTPClientProtocol(Protocol):
     def __init__(self, type_sheet: TypeSheet, token: Optional[str] = None):
         self.base_url: str
         self.version: int
 
-    async def request(self, route: Route, **kwargs):
+    async def request(self, route: RouteProtocol, **kwargs) -> ClientResponse:
         ...
 
     async def ws_connect(self, url) -> ClientWebSocketResponse:
+        ...
+
+    async def close(self) -> None:
+        ...
+
+    async def get_gateway_bot(self) -> ClientResponse:
         ...

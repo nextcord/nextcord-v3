@@ -29,22 +29,25 @@ if TYPE_CHECKING:
     T = TypeVar("T")
 
     from .core.gateway.gateway import GatewayProtocol
-    from .core.protocols.http import Bucket, HTTPClient
+    from .core.protocols.http import BucketProtocol, HTTPClientProtocol
+    from .core.gateway.protocols.shard import ShardProtocol
 
 
 @dataclass
 class TypeSheet:
-    http_client: Type[HTTPClient]
-    http_bucket: Type[Bucket]
+    http_client: Type[HTTPClientProtocol]
+    http_bucket: Type[BucketProtocol]
     gateway: Type[GatewayProtocol]
+    shard: Type[ShardProtocol]
 
     @classmethod
     def default(cls: Type[T]) -> T:
         # TODO: Possibly make this cleaner?
         from .core.gateway.gateway import Gateway
+        from .core.gateway.shard import Shard
         from .core.http import Bucket as DefaultBucket
         from .core.http import HTTPClient as DefaultHTTPClient
 
         return cls(
-            http_client=DefaultHTTPClient, http_bucket=DefaultBucket, gateway=Gateway
+            http_client=DefaultHTTPClient, http_bucket=DefaultBucket, gateway=Gateway, shard=Shard
         )

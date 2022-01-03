@@ -19,14 +19,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
-import asyncio
 
 from asyncio.futures import Future
 from collections import defaultdict
 from logging import getLogger
-from nextcord.core.gateway.exceptions import NotEnoughShardsException
 from typing import TYPE_CHECKING
 
+from nextcord.core.gateway.exceptions import NotEnoughShardsException
 from nextcord.dispatcher import Dispatcher
 
 from ..ratelimiter import TimesPer
@@ -37,6 +36,7 @@ if TYPE_CHECKING:
     from typing import Any, Optional
 
     from nextcord.exceptions import NextcordException
+    from .protocols.shard import ShardProtocol
 
     from ...client.state import State
 
@@ -44,10 +44,7 @@ logger = getLogger(__name__)
 
 
 class Gateway(GatewayProtocol):
-    def __init__(
-        self,
-        state: State,
-    ):
+    def __init__(self, state: State, shard_count: Optional[int] = None):
         self.state: State = state
         self._error_future: Future = Future()
         self._error: NextcordException
@@ -57,7 +54,7 @@ class Gateway(GatewayProtocol):
         self.max_concurrency: Optional[int] = None
 
         # Shard count
-        self.shard_count: Optional[int] = self.state.shard_count
+        self.shard_count: Optional[int] = shard_count
         self._shard_count_locked = self.shard_count is not None
 
         # Shard sets
@@ -67,8 +64,8 @@ class Gateway(GatewayProtocol):
         self.recreating_shards: bool = False
 
         # Dispatchers
-        self.shard_error_dispatcher: Dispatcher = Dispatcher()
-        self.dispatcher: Dispatcher = Dispatcher()
+        self.event_dispatcher: Dispatcher = Dispatcher()
+        self.raw_dispatcher: Dispatcher = Dispatcher()
 
     async def connect(self):
         r = await self.state.http.get_gateway_bot()
@@ -81,11 +78,10 @@ class Gateway(GatewayProtocol):
         self.max_concurrency = session_start_limit["max_concurrency"]
 
         for shard_id in range(self.shard_count):
-            shard = Shard(
+            shard = self.state.type_sheet.shard(
                 self.state,
                 shard_id,
             )
-            shard.event_dispatcher.add_listener(None, self.handle_shard_event)
             self.state.loop.create_task(shard.connect())
             self.shards.append(shard)
 
@@ -114,7 +110,3 @@ class Gateway(GatewayProtocol):
             return
         self.recreating_shards = True
         # TODO: Rescale.
-
-
-    async def handle_shard_event(self, *args):
-        self.dispatcher.dispatch(*args)

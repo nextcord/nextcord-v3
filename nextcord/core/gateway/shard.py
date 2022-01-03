@@ -24,7 +24,7 @@ from asyncio.tasks import sleep
 from logging import getLogger
 from random import random
 from sys import platform
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import WSMsgType
 
@@ -64,6 +64,7 @@ class Shard(ShardProtocol):
         self._ws: Optional[ClientWebSocketResponse] = None
         self._ratelimiter: TimesPer = TimesPer(120, 60)
         self._zlib = zlib.decompressobj()
+        self._buffer = bytearray()
         self._seq: Optional[int] = None
         self._session_id: Optional[str] = None
 
@@ -81,7 +82,9 @@ class Shard(ShardProtocol):
             OpcodeEnum.HEARTBEAT_ACK.value, self.handle_heartbeat_ack
         )
         self.opcode_dispatcher.add_listener(None, self.handle_set_sequence)
+        self.event_dispatcher.add_listener(None, self.handle_raw_dispatch)
         self.event_dispatcher.add_listener("READY", self.handle_ready)
+        self.event_dispatcher.add_listener(None, self.handle_dispatch)
 
         self.logger: Logger = getLogger(f"nextcord.shard.{self.shard_id}")
 
@@ -154,14 +157,15 @@ class Shard(ShardProtocol):
             await sleep(heartbeat_interval)
 
     def _decompress(self, data):
-        buffer = bytearray()
+
+        self._buffer.extend(data)
 
         if len(data) < 4 or data[-4:] != ZLIB_SUFFIX:
-            self.logger.info("Incorrectly formatted data?")
-            return
+            return  # data is incomplete
 
-        buffer.extend(data)
-        return self._zlib.decompress(buffer)
+        decompressed = self._zlib.decompress(self._buffer)
+        self._buffer = bytearray()  # reset buffer
+        return decompressed
 
     async def close(self):
         if self._ws is not None:
@@ -225,6 +229,12 @@ class Shard(ShardProtocol):
         self._session_id = data["session_id"]
         self.logger.debug("Session id set!")
 
+    async def handle_raw_dispatch(self, opcode: int, data: dict):
+        self.state.gateway.raw_dispatcher.dispatch(opcode, self, data)
+
+    async def handle_dispatch(self, event_name: str, data: Any):
+        self.state.gateway.event_dispatcher.dispatch(event_name, self, data)
+
     # Wrappers
     async def identify(self):
         await self.send(
@@ -238,7 +248,7 @@ class Shard(ShardProtocol):
                         "$browser": "nextcord",
                         "$device": "nextcord",
                     },
-                    "shard": (self.shard_id, self.state.shard_count),
+                    "shard": (self.shard_id, self.state.gateway.shard_count),
                 },
             }
         )

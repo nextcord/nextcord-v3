@@ -25,6 +25,7 @@ from ..type_sheet import TypeSheet
 
 if TYPE_CHECKING:
     from typing import Optional
+
     from .protocols.client import Client
 
 
@@ -43,8 +44,7 @@ class State:
 
         self.token: str = token
         self.intents: int = intents
-        self.shard_count: Optional[int] = shard_count
 
         # Instances
         self.http = self.type_sheet.http_client(self)
-        self.gateway = self.type_sheet.gateway(self)
+        self.gateway = self.type_sheet.gateway(self, shard_count=shard_count)
