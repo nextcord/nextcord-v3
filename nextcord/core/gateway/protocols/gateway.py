@@ -51,8 +51,12 @@ class GatewayProtocol(Protocol):
     async def close(self) -> None:
         ...
 
-    def _shard_dispatch(self, event_name: str, shard: ShardProtocol, *args: Any) -> None:
+    def _shard_dispatch(
+        self, event_name: str, shard: ShardProtocol, *args: Any
+    ) -> None:
         ...
 
-    def _shard_raw_dispatch(self, opcode: int, shard: ShardProtocol, *args: Any) -> None:
+    def _shard_raw_dispatch(
+        self, opcode: int, shard: ShardProtocol, *args: Any
+    ) -> None:
         ...
