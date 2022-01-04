@@ -18,7 +18,7 @@ class Intents(IntFlags):
         "DIRECT_MESSAGES",
         "DIRECT_MESSAGE_REACTIONS",
         "DIRECT_MESSAGE_TYPING",
-        "GUILD_SCHEDULED_EVENTS"
+        "GUILD_SCHEDULED_EVENTS",
     )
 
     @flag_value(0)
