@@ -9,9 +9,11 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
+      - name: Install poetry
+        run: pip install poetry
       - name: Install dependencies
-        run: pip install black isort
+        run: poetry install
       - name: Run black
-        run: black . --target-version py39 --diff --check
+        run: poetry run black . --target-version py39 --diff --check
       - name: Run isort
-        run: isort . --check --diff --profile black
+        run: poetry run isort . --check --diff --profile black
