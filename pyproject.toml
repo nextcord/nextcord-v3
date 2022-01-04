@@ -20,8 +20,18 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.9"
+orjson = {version = ">=3.5.4", optional = true}
+aiodns = {version = ">=1.1", optional = true}
+Brotli = {version = "^1.0.9", optional = true}
+cchardet = {version = "^2.1.7", optional = true}
 
 [tool.poetry.dev-dependencies]
+isort = "^5.10.1"
+black = "^21.12b0"
+pytest = "^6.2.5"
+
+[tool.poetry.extras]
+speed = ["orjson", "aiodns", "Brotli", "cchardet"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
