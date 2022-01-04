@@ -11,7 +11,7 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     install_requires=["aiohttp>=3.6.0,<4.0.0"],
-    extras_require={"speed": ["orjson>=3.5.4", "aiodns>=1.1", "Brotli", "cchardet"]},
+    extras_require={"speed": ["orjson>=3.5.4", "aiodns>=1.1", "Brotli", "cchardet"], "dev": ["pytest", "black", "isort"]},
     python_requires=">=3.9.0",
     clasifiers=[
         "License :: OSI Approved :: MIT License",
