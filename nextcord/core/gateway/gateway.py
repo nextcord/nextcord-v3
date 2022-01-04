@@ -36,9 +36,9 @@ if TYPE_CHECKING:
     from typing import Any, Optional
 
     from nextcord.exceptions import NextcordException
-    from .protocols.shard import ShardProtocol
 
     from ...client.state import State
+    from .protocols.shard import ShardProtocol
 
 logger = getLogger(__name__)
 
