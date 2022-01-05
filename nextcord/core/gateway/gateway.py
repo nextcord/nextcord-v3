@@ -35,9 +35,8 @@ from .shard import Shard
 if TYPE_CHECKING:
     from typing import Any, Optional
 
-    from nextcord.exceptions import NextcordException
-
     from ...client.state import State
+    from ...exceptions import NextcordException
     from .protocols.shard import ShardProtocol
 
 logger = getLogger(__name__)
@@ -51,17 +50,17 @@ class Gateway(GatewayProtocol):
 
         # Ratelimiting
         self._identify_ratelimits = defaultdict(lambda: TimesPer(1, 5))
-        self.max_concurrency: Optional[int] = None
+        self._max_concurrency: Optional[int] = None
 
         # Shard count
         self.shard_count: Optional[int] = shard_count
         self._shard_count_locked = self.shard_count is not None
 
         # Shard sets
-        self.shards: list[Any] = []
+        self.shards: list[ShardProtocol] = []
         # When we get disconnected for too low shard count, we start creating a second set of inactive shards.
         self._pending_shard_set: list[Any] = []
-        self.recreating_shards: bool = False
+        self._recreating_shards: bool = False
 
         # Dispatchers
         self.event_dispatcher: Dispatcher = Dispatcher()
@@ -75,7 +74,7 @@ class Gateway(GatewayProtocol):
             self.shard_count = gateway_info["shards"]
 
         session_start_limit = gateway_info["session_start_limit"]
-        self.max_concurrency = session_start_limit["max_concurrency"]
+        self._max_concurrency = session_start_limit["max_concurrency"]
 
         for shard_id in range(self.shard_count):
             shard = self.state.type_sheet.shard(
@@ -86,10 +85,10 @@ class Gateway(GatewayProtocol):
             self.shards.append(shard)
 
     def get_identify_ratelimiter(self, shard_id) -> TimesPer:
-        return self._identify_ratelimits[shard_id % self.max_concurrency]
+        return self._identify_ratelimits[shard_id % self._max_concurrency]
 
     def should_reconnect(self, shard: Shard) -> bool:
-        if not self.recreating_shards:
+        if not self._recreating_shards:
             return True
         if shard in self.shards:
             return False
@@ -102,11 +101,11 @@ class Gateway(GatewayProtocol):
 
     # Dispatcher handles
     async def handle_rescale(self) -> None:
-        if self.recreating_shards:
+        if self._recreating_shards:
             # Possibly error here as this should never be dispatched?
             return
         if self._shard_count_locked:
             await self.state.client.close(NotEnoughShardsException())
             return
-        self.recreating_shards = True
+        self._recreating_shards = True
         # TODO: Rescale.
