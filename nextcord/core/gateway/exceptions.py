@@ -41,3 +41,11 @@ class NotEnoughShardsException(GatewayException):
         super().__init__(
             "Discord requires more shards than you specified in the client constructor. This can be solved by upping the shard count or leaving it None for automatic"
         )
+
+
+class PartialDataException(GatewayException):
+    ...
+
+
+class BadDataException(GatewayException):
+    ...
