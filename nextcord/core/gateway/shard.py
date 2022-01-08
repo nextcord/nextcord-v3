@@ -86,9 +86,7 @@ class Shard(ShardProtocol):
 
         # Register handles
         self.opcode_dispatcher.add_listener(OpcodeEnum.HELLO.value, self._handle_hello)
-        self.opcode_dispatcher.add_listener(
-            OpcodeEnum.HEARTBEAT_ACK.value, self._handle_heartbeat_ack
-        )
+        self.opcode_dispatcher.add_listener(OpcodeEnum.HEARTBEAT_ACK.value, self._handle_heartbeat_ack)
         self.opcode_dispatcher.add_listener(None, self._handle_set_sequence)
         self.event_dispatcher.add_listener(None, self._handle_raw_dispatch)
         self.event_dispatcher.add_listener("READY", self._handle_ready)
@@ -155,9 +153,7 @@ class Shard(ShardProtocol):
         except ValueError:
             self._logger.warning("Disconnect with unknown close code %s", close_code)
         else:
-            self._logger.info(
-                "Disconnected with code %s (%s)", close_code, close_code_enum
-            )
+            self._logger.info("Disconnected with code %s (%s)", close_code, close_code_enum)
         self.disconnect_dispatcher.dispatch(close_code)
 
     async def _heartbeat_loop(self, heartbeat_interval: float) -> None:
@@ -231,9 +227,7 @@ class Shard(ShardProtocol):
             CloseCodeEnum.INVALID_API_VERSION,
         ]:
             # TODO: Error? These should never happen with the current sharding implementation although throwing a custom error might be a good idea?
-            raise NextcordException(
-                f"Unexpected discord close code: {CloseCodeEnum(close_code)}"
-            )
+            raise NextcordException(f"Unexpected discord close code: {CloseCodeEnum(close_code)}")
 
         # Errors which require a new session
         if close_code in [

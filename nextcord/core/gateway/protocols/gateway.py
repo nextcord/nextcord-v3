@@ -55,12 +55,8 @@ class GatewayProtocol(Protocol):
     def get_identify_ratelimiter(self, shard_id: int) -> TimesPer:
         ...
 
-    def _shard_dispatch(
-        self, event_name: str, shard: ShardProtocol, *args: Any
-    ) -> None:
+    def _shard_dispatch(self, event_name: str, shard: ShardProtocol, *args: Any) -> None:
         ...
 
-    def _shard_raw_dispatch(
-        self, opcode: int, shard: ShardProtocol, *args: Any
-    ) -> None:
+    def _shard_raw_dispatch(self, opcode: int, shard: ShardProtocol, *args: Any) -> None:
         ...

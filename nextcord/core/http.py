@@ -127,9 +127,7 @@ class Bucket(BucketProtocol):
             # Ratelimit pending, let's wait
             future = Future()
             self._pending.append(future)
-            logger.debug(
-                "Waiting for %s to clear up. %s pending", str(self), len(self._pending)
-            )
+            logger.debug("Waiting for %s to clear up. %s pending", str(self), len(self._pending))
             await future
         self._reserved += 1
         return self
@@ -154,18 +152,12 @@ class HTTPClient(HTTPClientProtocol):
 
         self.max_retries = max_retries
         self._global_lock = self.state.type_sheet.http_bucket(Route("POST", "/global"))
-        self._webhook_global_lock = self.state.type_sheet.http_bucket(
-            Route("POST", "/global/webhook")
-        )
+        self._webhook_global_lock = self.state.type_sheet.http_bucket(Route("POST", "/global/webhook"))
         self._session = ClientSession(json_serialize=json.dumps)
         self._buckets: dict[str, BucketProtocol] = {}
         self._http_errors = defaultdict((lambda: HTTPException), {})
 
-        self._headers = {
-            "User-Agent": "DiscordBot (https://github.com/nextcord/nextcord, {})".format(
-                __version__
-            )
-        }
+        self._headers = {"User-Agent": "DiscordBot (https://github.com/nextcord/nextcord, {})".format(__version__)}
         if self.state.token:
             self._headers["Authorization"] = f"Bot {self.state.token}"
 
@@ -176,9 +168,7 @@ class HTTPClient(HTTPClientProtocol):
         headers: dict[str, Any] = None,
         **kwargs,
     ) -> ClientResponse:
-        global_lock = (
-            self._webhook_global_lock if route.use_webhook_global else self._global_lock
-        )
+        global_lock = self._webhook_global_lock if route.use_webhook_global else self._global_lock
 
         if headers is None:
             headers = {}
@@ -217,9 +207,7 @@ class HTTPClient(HTTPClientProtocol):
                         logger.debug("Ratelimit exceeded")
                         continue
                     error = await r.json()
-                    raise self._http_errors[status](
-                        r.status, error["code"], error["message"]
-                    )
+                    raise self._http_errors[status](r.status, error["code"], error["message"])
 
                 return r
 
@@ -228,9 +216,7 @@ class HTTPClient(HTTPClientProtocol):
         )
 
     async def ws_connect(self, url) -> ClientWebSocketResponse:
-        return await self._session.ws_connect(
-            url, max_msg_size=0, autoclose=False, headers=self._headers
-        )
+        return await self._session.ws_connect(url, max_msg_size=0, autoclose=False, headers=self._headers)
 
     async def close(self):
         await self._session.close()
