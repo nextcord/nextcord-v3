@@ -45,9 +45,7 @@ class Dispatcher:
 
         # Predicates
         for predicate_info in self.predicates:
-            self.loop.create_task(
-                self._dispatch_predicate(predicate_info, event_name, *args)
-            )
+            self.loop.create_task(self._dispatch_predicate(predicate_info, event_name, *args))
 
         for listener in self.global_listeners:
             self.loop.create_task(listener(event_name, *args))

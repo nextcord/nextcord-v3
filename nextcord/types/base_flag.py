@@ -9,9 +9,7 @@ class IntFlags:
 
         flags: Optional[list[str]] = getattr(self, "flags", None)
         if flags is None:
-            raise NextcordException(
-                "A flags attribute has to defined"
-            )  # TODO: Maybe make this a warning?
+            raise NextcordException("A flags attribute has to defined")  # TODO: Maybe make this a warning?
 
         for flag_name, flag_value in kwargs.items():
             flag_name = flag_name.upper()

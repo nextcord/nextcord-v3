@@ -29,12 +29,20 @@ cchardet = {version = "^2.1.7", optional = true}
 isort = "^5.10.1"
 black = "^21.12b0"
 pytest = "^6.2.5"
+taskipy = "^1.9.0"
 
 [tool.poetry.extras]
 speed = ["orjson", "aiodns", "Brotli", "cchardet"]
 
 [tool.isort]
 profile = "black"
+
+[tool.black]
+line-length = 120
+target-version = ["py39"]
+
+[tool.taskipy.tasks]
+lint = "black . && isort --profile black ."
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
