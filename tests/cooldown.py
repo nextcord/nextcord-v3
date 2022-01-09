@@ -1,9 +1,11 @@
 import asyncio
+import time
 
 import pytest
 
 from nextcord.cooldowns import Cooldown, CooldownBucket, cooldown
 from nextcord.cooldowns.buckets import _HashableArguments
+from nextcord.core.ratelimiter import TimesPer
 from nextcord.exceptions import CallableOnCooldown
 
 
@@ -43,7 +45,7 @@ def test_kwargs_cooldown_bucket():
 
 
 @pytest.mark.asyncio
-async def test_cooldown_decor():
+async def test_cooldown_decor_simple():
     @cooldown(1, 1)
     async def test_func(*args, **kwargs) -> (tuple, dict):
         return args, kwargs
@@ -53,3 +55,38 @@ async def test_cooldown_decor():
 
     with pytest.raises(CallableOnCooldown):
         await test_func(1, two=2)
+
+    # Shouldn't error as it comes under the
+    # bucket _HashableArguments(1) rather then
+    # the bucket _HashableArguments(1, two=2)
+    await test_func(1)
+
+
+@pytest.mark.asyncio
+async def test_cooldown_args():
+    @cooldown(1, 1, bucket=CooldownBucket.args)
+    async def test_func(*args, **kwargs) -> (tuple, dict):
+        return args, kwargs
+
+    data = await test_func(1, two=2)
+    assert data == ((1,), {"two": 2})
+
+    with pytest.raises(CallableOnCooldown):
+        await test_func(1)
+
+    await test_func(2)
+
+
+@pytest.mark.asyncio
+async def test_cooldown_kwargs():
+    @cooldown(1, 1, bucket=CooldownBucket.kwargs)
+    async def test_func(*args, **kwargs) -> (tuple, dict):
+        return args, kwargs
+
+    data = await test_func(1, two=2)
+    assert data == ((1,), {"two": 2})
+
+    with pytest.raises(CallableOnCooldown):
+        await test_func(two=2)
+
+    await test_func(two=3)

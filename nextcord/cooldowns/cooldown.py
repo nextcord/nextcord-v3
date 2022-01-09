@@ -74,8 +74,7 @@ def cooldown(limit: int, per: float, bucket: Optional[CooldownBucket] = None):
 
         @functools.wraps(func)
         async def inner(*args, **kwargs):
-            _cooldown._last_bucket = _HashableArguments(*args, **kwargs)
-            async with _cooldown:
+            async with _cooldown(*args, **kwargs):
                 result = await func(*args, **kwargs)
 
             return result
@@ -83,6 +82,41 @@ def cooldown(limit: int, per: float, bucket: Optional[CooldownBucket] = None):
         return inner
 
     return decorator
+
+
+class _CooldownTimesPer:
+    # Essentially TimesPer but modified
+    # to throw Exceptions instead of queue
+    def __init__(
+        self,
+        limit: int,
+        per: float,
+        _cooldown: Cooldown,
+    ) -> None:
+        self.limit: int = limit
+        self.per: float = per
+        self._cooldown: Cooldown = _cooldown
+        self.current: int = limit
+        self.loop: AbstractEventLoop = get_event_loop()
+        self.pending_reset: bool = False
+
+    async def __aenter__(self) -> "_CooldownTimesPer":
+        if self.current == 0:
+            raise CallableOnCooldown(self._cooldown.func, self._cooldown, self.per)
+
+        self.current -= 1
+
+        if not self.pending_reset:
+            self.pending_reset = True
+            self.loop.call_later(self.per, self.reset)
+
+        return self
+
+    async def __aexit__(self, *_) -> None:
+        ...
+
+    def reset(self):
+        self.current = self.limit
 
 
 class Cooldown:
@@ -113,7 +147,6 @@ class Cooldown:
         # use that due to the required changes and flexibility
         self.limit: int = limit
         self.per: float = per
-        self.current: int = self.limit
 
         self._func: Optional[Callable] = func
         self._bucket: CooldownBucket = bucket
@@ -122,23 +155,52 @@ class Cooldown:
         self.last_reset_at: Optional[float] = None
         self._last_bucket: Optional[_HashableArguments] = None
 
-        # Map a Bucket to the list of Future's for said bucket
-        self._reserved: dict[_HashableArguments, list[Future]] = {}
+        self._cache: dict[_HashableArguments, _CooldownTimesPer] = {}
 
     async def __aenter__(self) -> "Cooldown":
-        if self.current == 0:
-            raise CallableOnCooldown(self._func, self, self.per)
-
-        self.current -= 1
-
-        if not self.pending_reset:
-            self.pending_reset = True
-            self.loop.call_later(self.per, self.reset, self._last_bucket)
-
-        return self
+        bucket: _CooldownTimesPer = self._get_cooldown_for_bucket(self._last_bucket)
+        async with bucket:
+            return self
 
     async def __aexit__(self, *_) -> None:
         ...
+
+    def __call__(self, *args, **kwargs):
+        self._last_bucket = self._bucket.process(*args, **kwargs)
+        return self
+
+    def _get_cooldown_for_bucket(self, bucket: _HashableArguments):
+        try:
+            return self._cache[bucket]
+        except KeyError:
+            _bucket = _CooldownTimesPer(self.limit, self.per, self)
+            self._cache[bucket] = _bucket
+            return _bucket
+
+    def get_bucket(self, *args, **kwargs) -> _HashableArguments:
+        """
+        Return the given bucket for some given arguments.
+
+        This uses the underlying :class:`CooldownBucket`
+        and will return a :class:`_HashableArguments`
+        instance which is inline with how Cooldown's function.
+
+        Parameters
+        ----------
+        args: Any
+            The arguments to get a bucket for
+        kwargs: Any
+            The keyword arguments to get a bucket for
+
+        Returns
+        -------
+        _HashableArguments
+            An internally correct representation
+            of a bucket for the given arguments.
+
+            This can then be used in :meth:`Cooldown.reset` calls.
+        """
+        return self._bucket.process(*args, **kwargs)
 
     def reset(self, bucket: Optional[_HashableArguments] = None) -> None:
         """
@@ -151,30 +213,19 @@ class Cooldown:
 
         Notes
         -----
-        TODO Make this cleaner.
-             Having the end user pass _HashableArguments sucks
+        You can get :class:`_HashableArguments` by
+        using the :meth:`Cooldown.get_bucket` method.
         """
         if not bucket:
             # Reset all buckets
-            for bucket in self._reserved.keys():
+            for bucket in self._cache.keys():
                 self.reset(bucket)
 
         current_time = time.time()
         self.last_reset_at = current_time + self.per
-        self.current = self.limit
 
-        # Release pending
-        for _ in range(self.limit):
-            try:
-                self._reserved[bucket].pop().set_result(None)
-            except (IndexError, KeyError):
-                break
-
-        if len(self._reserved[bucket]):
-            self.pending_reset = True
-            self.loop.call_later(self.per, self.reset, bucket)
-        else:
-            self.pending_reset = False
+        _bucket = self._get_cooldown_for_bucket(bucket)
+        _bucket.reset()
 
     def __repr__(self) -> str:
         return f"Cooldown(limit={self.limit}, per={self.per}, func={self._func})"
@@ -182,3 +233,7 @@ class Cooldown:
     @property
     def bucket(self) -> CooldownBucket:
         return self._bucket
+
+    @property
+    def func(self):
+        return self._func

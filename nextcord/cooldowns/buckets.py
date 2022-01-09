@@ -2,12 +2,12 @@ from enum import Enum
 
 
 class _HashableArguments:
-    # An internal class defined such that we
-    # can use *args and **kwargs as keys. We
-    # need to do this as mutable items are not
-    # hashable, therefore are not suitable for
-    # usage as dictionary keys. Thus this wraps
-    # those arguments with id() being used for hashing.
+    # An internal class defined such that we can
+    # use *args and **kwargs as keys. We need to
+    # do this as mutable items are not hashable,
+    # therefore are not suitable for usage as
+    # dictionary keys. Thus this wraps those
+    # arguments with id() being used for hashing.
     def __init__(self, *args, **kwargs):
         self.args: tuple = args
         self.kwargs: dict = kwargs
@@ -20,6 +20,9 @@ class _HashableArguments:
             return False
 
         return self.args == other.args and self.kwargs == other.kwargs
+
+    def __hash__(self) -> int:
+        return hash(str(self.args) + str(self.kwargs))
 
 
 class CooldownBucket(Enum):
