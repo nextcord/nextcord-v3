@@ -24,8 +24,9 @@ import time
 from asyncio import Future
 from asyncio.events import AbstractEventLoop, get_event_loop
 from logging import getLogger
-from typing import TYPE_CHECKING, Callable, Optional, List
+from typing import TYPE_CHECKING, Callable, Optional
 
+from nextcord.cooldowns import CooldownBucket
 from nextcord.exceptions import CallableOnCooldown
 
 logger = getLogger(__name__)
@@ -38,11 +39,10 @@ class Cooldown:
         self,
         limit: int,
         per: float,
-        bucket: Callable,
+        bucket: CooldownBucket,
         func: Optional[Callable] = None,
     ) -> None:
         """
-
         Parameters
         ----------
         limit: int
@@ -50,12 +50,9 @@ class Cooldown:
             period specified by ``per``
         per: float
             The time period related to ``limit``
-        bucket: Callable
-            A asynchronous function which will
-            get called to check which bucket the
-            cooldown is attached to.
-
-            This method should return the arguments
+        bucket: CooldownBucket
+            The :class:`CooldownBucket` instance to use
+            as a bucket to separate cooldown buckets.
         func: Optional[Callable]
             The function this cooldown is attached to
         """
@@ -65,15 +62,17 @@ class Cooldown:
         self.per: float = per
         self.current: int = self.limit
         self.func: Optional[Callable] = func
-        self._bucket: Callable = bucket
 
-        self._reserved: List[Future] = []
+        self._bucket: CooldownBucket = bucket
+        self._reserved: list[Future] = []
         self.loop: AbstractEventLoop = get_event_loop()
         self.pending_reset: bool = False
+        self.last_reset_at: Optional[float] = None
 
     async def __aenter__(self) -> "Cooldown":
         if self.current == 0:
             raise CallableOnCooldown(self.func, self, self.per)
+
         self.current -= 1
 
         if not self.pending_reset:
@@ -87,7 +86,7 @@ class Cooldown:
 
     def reset(self) -> None:
         current_time = time.time()
-        self.reset_at = current_time + self.per
+        self.last_reset_at = current_time + self.per
         self.current = self.limit
 
         # Release pending
@@ -107,5 +106,5 @@ class Cooldown:
         return f"Cooldown(limit={self.limit}, per={self.per}, func={self.func})"
 
     @property
-    def bucket(self) -> Callable:
+    def bucket(self) -> CooldownBucket:
         return self._bucket
