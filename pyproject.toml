@@ -29,6 +29,7 @@ cchardet = {version = "^2.1.7", optional = true}
 isort = "^5.10.1"
 black = "^21.12b0"
 pytest = "^6.2.5"
+pytest-asyncio = "^0.16.0"
 
 [tool.poetry.extras]
 speed = ["orjson", "aiodns", "Brotli", "cchardet"]
