@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from nextcord.cooldowns import Cooldown, CooldownBucket
+from nextcord.cooldowns import Cooldown, CooldownBucket, cooldown
 from nextcord.cooldowns.buckets import _HashableArguments
 from nextcord.exceptions import CallableOnCooldown
 
@@ -40,3 +40,13 @@ def test_kwargs_cooldown_bucket():
 
     data = bucket.process(1, 2, three=3, four=4)
     assert data == _HashableArguments(three=3, four=4)
+
+
+@pytest.mark.asyncio
+async def test_cooldown_decor():
+    @cooldown(1, 1)
+    async def test_func(*args, **kwargs) -> (tuple, dict):
+        return args, kwargs
+
+    await test_func()
+    # await test_func()

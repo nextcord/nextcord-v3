@@ -20,16 +20,62 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from asyncio import Future
 from asyncio.events import AbstractEventLoop, get_event_loop
 from logging import getLogger
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar
 
 from nextcord.cooldowns import CooldownBucket
+from nextcord.cooldowns.buckets import _HashableArguments
 from nextcord.exceptions import CallableOnCooldown
 
 logger = getLogger(__name__)
+
+T = TypeVar("T", bound=_HashableArguments)
+
+
+def cooldown(limit: int, per: float, bucket: Optional[CooldownBucket] = None):
+    """
+    A thing
+
+    Parameters
+    ----------
+    limit: int
+        How many call's can be made in the time
+        period specified by ``per``
+    per: float
+        The time period related to ``limit``
+    bucket: Optional[CooldownBucket]
+        The :class:`CooldownBucket` instance to use
+        as a bucket to separate cooldown buckets.
+
+        Defaults to :class:`CooldownBucket.all`
+
+    Raises
+    ------
+    RuntimeError
+        Expected the decorated function to be a coroutine
+    CallableOnCooldown
+        This call resulted in a cooldown being put into effect
+    """
+    bucket = bucket or CooldownBucket.all
+    _cooldown: Cooldown = Cooldown(limit, per, bucket)
+
+    async def decorator(func: Callable, *args, **kwargs) -> Callable:
+        if not asyncio.iscoroutinefunction(func):
+            raise RuntimeError("Expected `func` to be a coroutine")
+
+        attached_cooldowns = getattr(func, "_cooldowns", [])
+        attached_cooldowns.append(_cooldown)
+        setattr(func, "_cooldowns", attached_cooldowns)
+
+        _cooldown._last_bucket = _HashableArguments(*args, **kwargs)
+        async with _cooldown:
+            return await func(*args, **kwargs)
+
+    return decorator
 
 
 class Cooldown:
@@ -61,30 +107,51 @@ class Cooldown:
         self.limit: int = limit
         self.per: float = per
         self.current: int = self.limit
-        self.func: Optional[Callable] = func
 
+        self._func: Optional[Callable] = func
         self._bucket: CooldownBucket = bucket
-        self._reserved: list[Future] = []
         self.loop: AbstractEventLoop = get_event_loop()
         self.pending_reset: bool = False
         self.last_reset_at: Optional[float] = None
+        self._last_bucket: Optional[_HashableArguments] = None
+
+        # Map a Bucket to the list of Future's for said bucket
+        self._reserved: dict[_HashableArguments, list[Future]] = {}
 
     async def __aenter__(self) -> "Cooldown":
         if self.current == 0:
-            raise CallableOnCooldown(self.func, self, self.per)
+            raise CallableOnCooldown(self._func, self, self.per)
 
         self.current -= 1
 
         if not self.pending_reset:
             self.pending_reset = True
-            self.loop.call_later(self.per, self.reset)
+            self.loop.call_later(self.per, self.reset, self._last_bucket)
 
         return self
 
     async def __aexit__(self, *_) -> None:
         ...
 
-    def reset(self) -> None:
+    def reset(self, bucket: Optional[_HashableArguments] = None) -> None:
+        """
+        Reset the given bucket, or the entire cooldown.
+
+        Parameters
+        ----------
+        bucket: Optional[_HashableArguments]
+            The bucket we wish to reset
+
+        Notes
+        -----
+        TODO Make this cleaner.
+             Having the end user pass _HashableArguments sucks
+        """
+        if not bucket:
+            # Reset all buckets
+            for bucket in self._reserved.keys():
+                self.reset(bucket)
+
         current_time = time.time()
         self.last_reset_at = current_time + self.per
         self.current = self.limit
@@ -92,18 +159,18 @@ class Cooldown:
         # Release pending
         for _ in range(self.limit):
             try:
-                self._reserved.pop().set_result(None)
-            except IndexError:
+                self._reserved[bucket].pop().set_result(None)
+            except (IndexError, KeyError):
                 break
 
-        if len(self._reserved):
+        if len(self._reserved[bucket]):
             self.pending_reset = True
-            self.loop.call_later(self.per, self.reset)
+            self.loop.call_later(self.per, self.reset, bucket)
         else:
             self.pending_reset = False
 
     def __repr__(self) -> str:
-        return f"Cooldown(limit={self.limit}, per={self.per}, func={self.func})"
+        return f"Cooldown(limit={self.limit}, per={self.per}, func={self._func})"
 
     @property
     def bucket(self) -> CooldownBucket:
