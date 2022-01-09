@@ -46,5 +46,5 @@ class CloudflareBanException(RatelimitException):
         )
 
 
-class InvalidArgument(NextcordException):
+class ArgumentConflict(NextcordException):
     ...

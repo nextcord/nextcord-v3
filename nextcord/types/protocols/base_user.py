@@ -54,7 +54,6 @@ class UserProtocol:
         system: bool
         _banner: Optional[str]
         _accent_color: Optional[int]
-        _premium_type: Optional[PremiumType]
         _public_flags: int
         _state: State
 
@@ -73,3 +72,55 @@ class UserProtocol:
         self._banner = data.get("banner")
         self._accent_color = data.get("accent_color")
         self._public_flags = data.get("public_flags")
+
+
+class ClientUser(UserProtocol):
+    __slots__ = ("mfa_enabled", "locale", "verified", "email", "flags", "bio")
+
+    if TYPE_CHECKING:
+        mfa_enabled: bool
+        locale: str
+        verified: bool
+        flags: int
+        bio: str
+
+    def __init__(self, state: State, data: dict):
+        super().__init__(state=state, data=data)
+
+    def _update(self, data):
+        super()._update(data)
+        self.mfa_enabled = data.get("mfa_enabled")
+        self.locale = data.get("locale")
+        self.verified = data.get("verified")
+        self.flags = data.get("flags")
+        self.bio = data.get("bio")
+
+    async def edit(
+        self, *, username: Optional[str] = None, avatar: Optional[bytes] = None
+    ):
+        payload = {}
+        if username is not None:
+            payload["username"] = username
+
+        if avatar is not None:
+            payload["avatar"] = ...  # TODO: convert bytes to base64 image format
+
+        await self._state.http  # TODO: HTTP not implemented yet
+
+    async def get_guilds(
+        self,
+        *,
+        before: Optional[Snowflake] = None,
+        after: Optional[Snowflake] = None,
+        limit: Optional[int] = None,
+    ):
+        ...
+
+    async def _get_guild_member(self, *, guild_id: Snowflake):
+        ...
+
+    async def _leave_guild(self, *, guild_id: Snowflake):
+        ...
+
+    async def _create_dm(self, *, recipient_id: Snowflake):
+        ...

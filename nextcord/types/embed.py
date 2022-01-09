@@ -74,7 +74,7 @@ class EmbedFooter:
 
 
 class EmbedField:
-    def __init__(self, name: str, value: str, *, inline: bool = None):
+    def __init__(self, name: str, value: str, *, inline: Optional[bool] = None):
         self.name = str(name)
         self.value = str(value)
         self.inline = bool(inline)
@@ -123,7 +123,12 @@ class Embed:
         self.fields = fields if isinstance(fields, list) else []
 
     def add_field(
-        self, name: str, value: str, *, inline: bool = None, position: int = None
+        self,
+        name: str,
+        value: str,
+        *,
+        inline: Optional[bool] = None,
+        position: Optional[int] = None,
     ) -> None:
         if position is not None:
             self.fields.insert(position, EmbedField(name, value, inline=inline))
@@ -131,7 +136,12 @@ class Embed:
             self.fields.append(EmbedField(name, value, inline=inline))
 
     def edit_field(
-        self, index: int, name: str = None, value: str = None, *, inline: bool = None
+        self,
+        index: Optional[int],
+        name: Optional[str] = None,
+        value: Optional[str] = None,
+        *,
+        inline: Optional[bool] = None,
     ) -> None:
         if name is not None:
             self.fields[index].name = name

@@ -28,5 +28,5 @@ logger = getLogger(__name__)
 
 
 class Channel:
-    def __init__(self, *, state: State, data: dict):
+    def __init__(self, state: State, data: dict):
         pass
