@@ -1,3 +1,9 @@
+from typing import Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from nextcord.cooldowns import CooldownBucket, Cooldown
+
+
 class NextcordException(Exception):
     ...
 
@@ -25,3 +31,28 @@ class CloudflareBanException(RatelimitException):
             "You have been banned by Cloudflare. "
             "See https://discord.dev/topics/rate-limits#invalid-request-limit-aka-cloudflare-bans"
         )
+
+
+class CallableOnCooldown(RatelimitException):
+    """
+    This :type:`Callable` is currently on cooldown.
+
+    Attributes
+    ==========
+    func: Callable
+        The :type:`Callable` which is currently rate-limited
+    cooldown: Cooldown
+        The :class:`Cooldown` which applies to the current cooldown
+    retry_after: float
+        How many seconds before you can retry the :type:`Callable`
+    """
+
+    def __init__(
+        self,
+        func: Callable,
+        cooldown: "Cooldown",
+        retry_after: float,
+    ) -> None:
+        self.func: Callable = func
+        self.cooldown: "Cooldown" = cooldown
+        self.retry_after: float = retry_after
