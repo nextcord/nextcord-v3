@@ -22,12 +22,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Protocol
 
-from nextcord.client.state import State
-from nextcord.dispatcher import Dispatcher
+from nextcord.core.ratelimiter import TimesPer
 
 if TYPE_CHECKING:
     from typing import Optional
 
+    from ....client.state import State
+    from ....dispatcher import Dispatcher
     from .shard import ShardProtocol
 
 
@@ -49,6 +50,9 @@ class GatewayProtocol(Protocol):
         ...
 
     async def close(self) -> None:
+        ...
+
+    def get_identify_ratelimiter(self, shard_id: int) -> TimesPer:
         ...
 
     def _shard_dispatch(

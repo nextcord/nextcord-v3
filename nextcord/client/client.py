@@ -33,6 +33,8 @@ from .state import State
 if TYPE_CHECKING:
     from typing import Optional
 
+    from ..flags import Intents
+
 
 logger = getLogger(__name__)
 
@@ -41,14 +43,14 @@ class Client(ClientProtocol):
     def __init__(
         self,
         token: str,
+        intents: Intents,
         *,
         type_sheet: Optional[TypeSheet] = None,
-        intents: Optional[int] = None,
         shard_count: Optional[int] = None,
     ) -> None:
         if type_sheet is None:
             type_sheet = TypeSheet.default()
-        self.state: State = State(self, type_sheet, token, intents, shard_count)
+        self.state: State = State(self, type_sheet, token, intents.value, shard_count)
         self._error_future: Future = Future()
         self._error: Optional[NextcordException] = None
 

@@ -1,19 +1,17 @@
-name: Lint
+name: Test
 on: [pull_request, push]
 jobs:
-  lint:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10
         uses: actions/setup-python@v1
         with:
-          python-version: 3.9
+          python-version: "3.10"
       - name: Install poetry
         run: pip install poetry
       - name: Install dependencies
         run: poetry install
-      - name: Run black
-        run: poetry run black . --target-version py39 --diff --check
-      - name: Run isort
-        run: poetry run isort . --check --diff --profile black
+      - name: Run tests
+        run: poetry run pytest tests/*
