@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Callable, Optional, TypeVar
 
 from nextcord.cooldowns import CooldownBucket
 from nextcord.cooldowns.buckets import _HashableArguments
+from nextcord.cooldowns.protocols import Bucket
 from nextcord.exceptions import CallableOnCooldown
 
 logger = getLogger(__name__)
@@ -37,7 +38,7 @@ logger = getLogger(__name__)
 T = TypeVar("T", bound=_HashableArguments)
 
 
-def cooldown(limit: int, per: float, bucket: Optional[CooldownBucket] = None):
+def cooldown(limit: int, per: float, bucket: Optional[Bucket] = None):
     """
     A thing
 
@@ -48,8 +49,8 @@ def cooldown(limit: int, per: float, bucket: Optional[CooldownBucket] = None):
         period specified by ``per``
     per: float
         The time period related to ``limit``
-    bucket: Optional[CooldownBucket]
-        The :class:`CooldownBucket` instance to use
+    bucket: Optional[Bucket]
+        The :class:`Bucket` implementation to use
         as a bucket to separate cooldown buckets.
 
         Defaults to :class:`CooldownBucket.all`
@@ -126,7 +127,7 @@ class Cooldown:
         self,
         limit: int,
         per: float,
-        bucket: CooldownBucket,
+        bucket: Optional[Bucket] = None,
         func: Optional[Callable] = None,
     ) -> None:
         """
@@ -137,19 +138,22 @@ class Cooldown:
             period specified by ``per``
         per: float
             The time period related to ``limit``
-        bucket: CooldownBucket
-            The :class:`CooldownBucket` instance to use
+        bucket: Optional[Bucket]
+            The :class:`Bucket` implementation to use
             as a bucket to separate cooldown buckets.
+
+            Defaults to :class:`CooldownBucket.all`
         func: Optional[Callable]
             The function this cooldown is attached to
         """
+        bucket = bucket or CooldownBucket.all
         # See TimesPer for inspo, however it doesnt
         # use that due to the required changes and flexibility
         self.limit: int = limit
         self.per: float = per
 
         self._func: Optional[Callable] = func
-        self._bucket: CooldownBucket = bucket
+        self._bucket: Bucket = bucket
         self.loop: AbstractEventLoop = get_event_loop()
         self.pending_reset: bool = False
         self.last_reset_at: Optional[float] = None
@@ -166,7 +170,7 @@ class Cooldown:
         ...
 
     def __call__(self, *args, **kwargs):
-        self._last_bucket = self._bucket.process(*args, **kwargs)
+        self._last_bucket = self.get_bucket(*args, **kwargs)
         return self
 
     def _get_cooldown_for_bucket(self, bucket: _HashableArguments):
@@ -200,7 +204,17 @@ class Cooldown:
 
             This can then be used in :meth:`Cooldown.reset` calls.
         """
-        return self._bucket.process(*args, **kwargs)
+        data = self._bucket.process(*args, **kwargs)
+        if self._bucket is CooldownBucket.all:
+            return _HashableArguments(*data[0], **data[1])
+
+        elif self._bucket is CooldownBucket.args:
+            return _HashableArguments(*data)
+
+        elif self._bucket is CooldownBucket.kwargs:
+            return _HashableArguments(**data)
+
+        return _HashableArguments(data)
 
     def reset(self, bucket: Optional[_HashableArguments] = None) -> None:
         """
@@ -231,7 +245,7 @@ class Cooldown:
         return f"Cooldown(limit={self.limit}, per={self.per}, func={self._func})"
 
     @property
-    def bucket(self) -> CooldownBucket:
+    def bucket(self) -> Bucket:
         return self._bucket
 
     @property

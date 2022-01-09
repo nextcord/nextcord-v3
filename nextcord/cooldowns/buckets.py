@@ -7,7 +7,7 @@ class _HashableArguments:
     # do this as mutable items are not hashable,
     # therefore are not suitable for usage as
     # dictionary keys. Thus this wraps those
-    # arguments with id() being used for hashing.
+    # arguments with repr hashes used
     def __init__(self, *args, **kwargs):
         self.args: tuple = args
         self.kwargs: dict = kwargs
@@ -15,14 +15,15 @@ class _HashableArguments:
     def __repr__(self):
         return f"_HashableArguments(args={self.args}, kwargs={self.kwargs})"
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, type(self)):
             return False
 
         return self.args == other.args and self.kwargs == other.kwargs
 
     def __hash__(self) -> int:
-        return hash(str(self.args) + str(self.kwargs))
+        # TODO This needs to be better suited to uniqueness and nesting
+        return hash(repr(self.args) + repr(self.kwargs))
 
 
 class CooldownBucket(Enum):
@@ -49,10 +50,10 @@ class CooldownBucket(Enum):
 
     def process(self, *args, **kwargs):
         if self is CooldownBucket.all:
-            return _HashableArguments(*args, **kwargs)
+            return args, kwargs
 
         elif self is CooldownBucket.args:
-            return _HashableArguments(*args)
+            return args
 
         elif self is CooldownBucket.kwargs:
-            return _HashableArguments(**kwargs)
+            return kwargs
