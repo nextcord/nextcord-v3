@@ -113,7 +113,7 @@ async def test_custom_buckets():
         def process(self, *args, **kwargs):
             if self is CustomBucket.first_arg:
                 # This bucket is based ONLY off
-                # of the first argument pased
+                # of the first argument passed
                 return args[0]
 
     @cooldown(1, 1, bucket=CustomBucket.first_arg)
