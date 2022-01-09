@@ -48,5 +48,8 @@ async def test_cooldown_decor():
     async def test_func(*args, **kwargs) -> (tuple, dict):
         return args, kwargs
 
-    await test_func()
-    # await test_func()
+    data = await test_func(1, two=2)
+    assert data == ((1,), {"two": 2})
+
+    with pytest.raises(CallableOnCooldown):
+        await test_func(1, two=2)

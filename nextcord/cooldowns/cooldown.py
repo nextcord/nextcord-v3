@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import time
 from asyncio import Future
 from asyncio.events import AbstractEventLoop, get_event_loop
@@ -63,7 +64,7 @@ def cooldown(limit: int, per: float, bucket: Optional[CooldownBucket] = None):
     bucket = bucket or CooldownBucket.all
     _cooldown: Cooldown = Cooldown(limit, per, bucket)
 
-    async def decorator(func: Callable, *args, **kwargs) -> Callable:
+    def decorator(func: Callable) -> Callable:
         if not asyncio.iscoroutinefunction(func):
             raise RuntimeError("Expected `func` to be a coroutine")
 
@@ -71,9 +72,15 @@ def cooldown(limit: int, per: float, bucket: Optional[CooldownBucket] = None):
         attached_cooldowns.append(_cooldown)
         setattr(func, "_cooldowns", attached_cooldowns)
 
-        _cooldown._last_bucket = _HashableArguments(*args, **kwargs)
-        async with _cooldown:
-            return await func(*args, **kwargs)
+        @functools.wraps(func)
+        async def inner(*args, **kwargs):
+            _cooldown._last_bucket = _HashableArguments(*args, **kwargs)
+            async with _cooldown:
+                result = await func(*args, **kwargs)
+
+            return result
+
+        return inner
 
     return decorator
 
