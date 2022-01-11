@@ -44,7 +44,8 @@ class TimesPer:
 
     async def __aenter__(self) -> "TimesPer":
         if self.current == 0:
-            self._reserved.append(future := Future())
+            future = Future()
+            self._reserved.append(future)
             await future
         self.current -= 1
 
