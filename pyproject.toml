@@ -2,7 +2,7 @@
 name = "nextcord"
 version = "3.0.0"
 description = "A modern, async, and feature-full wrapper for the Discord API, made in Python."
-authors = ["vcokltfre <vcokltfre@gmail.com>", "tag-epic <tagepicuwu@gmai.com>"]
+authors = ["vcokltfre <vcokltfre@gmail.com>", "tag-epic <epic@duck.com>"]
 license = "MIT"
 repository = "https://github.com/nextcord/nextcord-v3"
 classifiers = [
