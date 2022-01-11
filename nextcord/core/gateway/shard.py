@@ -85,12 +85,12 @@ class Shard(ShardProtocol):
         self.disconnect_dispatcher: Dispatcher = Dispatcher()
 
         # Register handles
-        self.opcode_dispatcher.add_listener(OpcodeEnum.HELLO.value, self._handle_hello)
-        self.opcode_dispatcher.add_listener(OpcodeEnum.HEARTBEAT_ACK.value, self._handle_heartbeat_ack)
-        self.opcode_dispatcher.add_listener(None, self._handle_set_sequence)
-        self.event_dispatcher.add_listener(None, self._handle_raw_dispatch)
-        self.event_dispatcher.add_listener("READY", self._handle_ready)
-        self.event_dispatcher.add_listener(None, self._handle_dispatch)
+        self.opcode_dispatcher.add_listener(self._handle_hello, OpcodeEnum.HELLO.value)
+        self.opcode_dispatcher.add_listener(self._handle_heartbeat_ack, OpcodeEnum.HEARTBEAT_ACK.value)
+        self.opcode_dispatcher.add_listener(self._handle_set_sequence)
+        self.opcode_dispatcher.add_listener(self._handle_raw_dispatch)
+        self.event_dispatcher.add_listener(self._handle_ready, "READY")
+        self.event_dispatcher.add_listener(self._handle_dispatch)
 
     async def connect(self) -> None:
         self._ws = await self._state.http.ws_connect(self._gateway_url)

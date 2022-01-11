@@ -73,7 +73,7 @@ class Dispatcher:
     def add_predicate(self, event_name: Any, predicate: Any, callback: Any):
         self.predicates[event_name].append((predicate, callback))
 
-    def add_listener(self, event_name: Any, listener: Any):
+    def add_listener(self, listener: Any, event_name: Any = None):
         if event_name is None:
             self.global_listeners.append(listener)
         else:
