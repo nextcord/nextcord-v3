@@ -108,25 +108,20 @@ class Shard(ShardProtocol):
             await self.resume()
             self._logger.info("Reconnected to the gateway")
 
-    async def send(self, data: dict, *, ignore_ratelimit: bool = False) -> None:
+    async def _send(self, data: dict):
         if self._ws is None:
             raise NextcordException("Cannot send message to uninitialized WS")
         if self._ws.closed:
             raise NextcordException("Cannot send message to closed WS")
-        if not ignore_ratelimit:
-            async with self._ratelimiter:
-                self._logger.debug("> %s", data)
-                try:
-                    await self._ws.send_str(json.dumps(data))
-                except ConnectionResetError:
-                    raise ShardClosedException()
-        else:
-            # Ignore WS ratelimits for heartbeating. We have a 3 tolerance for this per 60s.
-            self._logger.debug("> %s", data)
-            try:
-                await self._ws.send_str(json.dumps(data))
-            except ConnectionResetError:
-                raise ShardClosedException()
+        self._logger.debug("> %s", data)
+        try:
+            await self._ws.send_str(json.dumps(data))
+        except ConnectionResetError:
+            raise ShardClosedException()
+
+    async def send(self, data: dict) -> None:
+        async with self._ratelimiter:
+            await self._send(data)
 
     async def _receive_loop(self) -> None:
         if self._ws is None:
@@ -164,9 +159,8 @@ class Shard(ShardProtocol):
                 await self._ws.close(code=1008)
                 return
             self._has_acknowledged_heartbeat = False
-            await self.send(
+            await self._send(
                 {"op": OpcodeEnum.HEARTBEAT.value, "d": self._seq},
-                ignore_ratelimit=True,
             )
             await sleep(heartbeat_interval)
 
