@@ -34,4 +34,3 @@ def flag_value(bit: int) -> property:
             self.value &= ~bit
 
     return flag
-

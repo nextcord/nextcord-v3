@@ -33,6 +33,6 @@ def test_initial_values():
 def test_flag_values():
     flags = ExampleFlags(one=True)
     assert flags.value == 1, "Flag value should be one"
-    
+
     flags = ExampleFlags(two=True)
     assert flags.value == 2
