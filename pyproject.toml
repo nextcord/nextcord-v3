@@ -33,6 +33,7 @@ isort = "^5.10.1"
 black = "^21.12b0"
 pytest = "^6.2.5"
 taskipy = "^1.9.0"
+mypy = "^0.931"
 
 [tool.poetry.extras]
 speed = ["orjson", "aiodns", "Brotli", "cchardet"]
