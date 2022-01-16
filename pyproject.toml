@@ -17,6 +17,9 @@ classifiers = [
     "Topic :: Communications :: Chat",
     "Typing :: Typed"
 ]
+packages = [
+    { include = "nextcord" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
