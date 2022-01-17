@@ -77,7 +77,7 @@ class Route(RouteProtocol):
         self.webhook_token: Optional[str] = parameters.get("webhook_token")
 
     @property
-    def bucket(self) -> str: # type: ignore
+    def bucket(self) -> str:  # type: ignore
         return f"{self.method}:{self.unformatted_path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
 
 
@@ -91,8 +91,8 @@ class Bucket(BucketProtocol):
         self._reserved: int = 0
         self._loop = get_event_loop()
 
-    @property # type: ignore
-    def remaining(self) -> Optional[int]: # type: ignore
+    @property  # type: ignore
+    def remaining(self) -> Optional[int]:  # type: ignore
         return self._remaining
 
     @remaining.setter

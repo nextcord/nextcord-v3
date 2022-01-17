@@ -22,7 +22,7 @@ def flag_value(bit: int) -> bool:
     if bit < 0:
         raise ValueError("Bit cannot be less than 0")
 
-    @property # type: ignore
+    @property  # type: ignore
     def flag(self: IntFlags) -> bool:
         return (self.value & bit) == bit
 
@@ -33,4 +33,4 @@ def flag_value(bit: int) -> bool:
         else:
             self.value &= ~bit
 
-    return flag # type: ignore
+    return flag  # type: ignore
