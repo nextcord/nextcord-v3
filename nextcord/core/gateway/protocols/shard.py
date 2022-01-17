@@ -39,6 +39,7 @@ class ShardProtocol(Protocol):
 
     def __init__(self, state: State, shard_id: int) -> None:
         ...
+
     async def connect(self) -> None:
         ...
 

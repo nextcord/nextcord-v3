@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from ..type_sheet import TypeSheet
     from .client import Client
 
+
 class State:
     def __init__(
         self,

@@ -50,7 +50,9 @@ class Client:
         if type_sheet is None:
             type_sheet = TypeSheet.default()
         self.state: State = State(self, type_sheet, token, intents.value, shard_count)
-        self._error_future: Future[None] = Future()  # TODO: Make this return a Optional error instead of setting a attribute
+        self._error_future: Future[
+            None
+        ] = Future()  # TODO: Make this return a Optional error instead of setting a attribute
         self._error: Optional[NextcordException] = None
 
     async def connect(self) -> None:

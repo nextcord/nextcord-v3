@@ -37,6 +37,7 @@ class RouteProtocol(Protocol):
     path: str
     bucket: str
     use_webhook_global: bool
+
     def __init__(
         self,
         method: Literal[
@@ -57,12 +58,15 @@ class RouteProtocol(Protocol):
     ):
         ...
 
+
 class BucketProtocol(Protocol):
     limit: Optional[int]
     remaining: Optional[int]
     reset_at: Optional[float]
+
     def __init__(self, route: RouteProtocol) -> None:
         ...
+
     async def __aenter__(self: T) -> T:
         ...
 
@@ -72,6 +76,7 @@ class BucketProtocol(Protocol):
 
 class HTTPClientProtocol(Protocol):
     base_url: str
+
     def __init__(self, state: State, token: Optional[str] = None) -> None:
         ...
 
