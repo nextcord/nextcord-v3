@@ -4,7 +4,7 @@ from ..exceptions import NextcordException
 
 
 class IntFlags:
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: bool) -> None:
         self.value: int = 0
 
         flags: Optional[list[str]] = getattr(self, "flags", None)
@@ -23,11 +23,11 @@ def flag_value(bit: int) -> property:
         raise ValueError("Bit cannot be less than 0")
 
     @property
-    def flag(self) -> int:
+    def flag(self: IntFlags) -> int:
         return (self.value & bit) == bit
 
     @flag.setter
-    def flag(self, value: bool) -> None:
+    def flag(self: IntFlags, value: bool) -> None:
         if value:
             self.value |= bit
         else:

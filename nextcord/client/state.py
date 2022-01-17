@@ -18,16 +18,14 @@
 
 from __future__ import annotations
 
-from asyncio.events import AbstractEventLoop, get_event_loop
+from asyncio import AbstractEventLoop, get_event_loop
 from typing import TYPE_CHECKING
 
-from ..type_sheet import TypeSheet
 
 if TYPE_CHECKING:
     from typing import Optional
-
-    from .protocols.client import Client
-
+    from ..type_sheet import TypeSheet
+    from .client import Client
 
 class State:
     def __init__(

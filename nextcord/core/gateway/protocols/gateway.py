@@ -20,12 +20,12 @@
 # DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from nextcord.core.ratelimiter import TimesPer
 
 if TYPE_CHECKING:
-    from typing import Optional
+    from typing import Optional, Any
 
     from ....client.state import State
     from ....dispatcher import Dispatcher
@@ -33,17 +33,18 @@ if TYPE_CHECKING:
 
 
 class GatewayProtocol(Protocol):
-    def __init__(self, state: State, shard_count: Optional[int] = None):
-        self.state: State
-        self.shard_count: Optional[int]
+    state: State
+    shard_count: Optional[int]
 
-        self.event_dispatcher: Dispatcher
-        self.raw_dispatcher: Dispatcher
+    event_dispatcher: Dispatcher
+    raw_dispatcher: Dispatcher
+    def __init__(self, state: State, shard_count: Optional[int] = None):
+        ...
 
     async def connect(self) -> None:
         ...
 
-    async def send(self, data: dict, *, shard_id: int = 0) -> None:
+    async def send(self, data: dict[str, Any], *, shard_id: int = 0) -> None:
         ...
 
     def should_reconnect(self, shard: ShardProtocol) -> bool:

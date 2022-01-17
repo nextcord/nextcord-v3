@@ -48,7 +48,7 @@ class TypeSheet:
         from .core.http import Bucket as DefaultBucket
         from .core.http import HTTPClient as DefaultHTTPClient
 
-        return cls(
+        return cls(  # type: ignore
             http_client=DefaultHTTPClient,
             http_bucket=DefaultBucket,
             gateway=Gateway,
