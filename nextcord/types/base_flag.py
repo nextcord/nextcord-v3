@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Optional
 
 from ..exceptions import NextcordException
 
@@ -18,12 +18,12 @@ class IntFlags:
             setattr(self, flag_name, flag_value)
 
 
-def flag_value(bit: int) -> property:
+def flag_value(bit: int) -> bool:
     if bit < 0:
         raise ValueError("Bit cannot be less than 0")
 
-    @property
-    def flag(self: IntFlags) -> int:
+    @property # type: ignore
+    def flag(self: IntFlags) -> bool:
         return (self.value & bit) == bit
 
     @flag.setter
@@ -33,4 +33,4 @@ def flag_value(bit: int) -> property:
         else:
             self.value &= ~bit
 
-    return flag
+    return flag # type: ignore
