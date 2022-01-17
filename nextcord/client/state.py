@@ -21,9 +21,9 @@ from __future__ import annotations
 from asyncio import AbstractEventLoop, get_event_loop
 from typing import TYPE_CHECKING
 
-
 if TYPE_CHECKING:
     from typing import Optional
+
     from ..type_sheet import TypeSheet
     from .client import Client
 

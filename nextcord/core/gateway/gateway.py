@@ -24,10 +24,9 @@ from collections import defaultdict
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from .exceptions import NotEnoughShardsException
 from ...dispatcher import Dispatcher
-
 from ..ratelimiter import TimesPer
+from .exceptions import NotEnoughShardsException
 from .protocols.gateway import GatewayProtocol
 
 if TYPE_CHECKING:

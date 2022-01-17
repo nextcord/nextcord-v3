@@ -19,14 +19,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 from __future__ import annotations
-from nextcord.client.state import State
 
 from typing import TYPE_CHECKING, Protocol
 
-if TYPE_CHECKING:
-    from typing import Literal, Optional, TypeVar, Type, Any
+from nextcord.client.state import State
 
-    from aiohttp import ClientWebSocketResponse, ClientResponse
+if TYPE_CHECKING:
+    from typing import Any, Literal, Optional, Type, TypeVar
+
+    from aiohttp import ClientResponse, ClientWebSocketResponse
+
     from ...type_sheet import TypeSheet
 
     T = TypeVar("T")

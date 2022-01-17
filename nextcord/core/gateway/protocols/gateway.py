@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Protocol
 from nextcord.core.ratelimiter import TimesPer
 
 if TYPE_CHECKING:
-    from typing import Optional, Any
+    from typing import Any, Optional
 
     from ....client.state import State
     from ....dispatcher import Dispatcher
