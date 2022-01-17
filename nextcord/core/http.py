@@ -212,7 +212,7 @@ class HTTPClient(HTTPClientProtocol):
                 return r
 
         raise DiscordException(
-            "Ratelimiting failed 5 times. This should only happen if you are running multiple bots with the same IP."
+            f"Ratelimiting failed {self.max_retries} times. This should only happen if you are running multiple bots with the same IP."
         )
 
     async def ws_connect(self, url) -> ClientWebSocketResponse:
