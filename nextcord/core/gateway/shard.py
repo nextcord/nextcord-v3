@@ -114,8 +114,11 @@ class Shard(ShardProtocol):
         if self._ws.closed:
             raise NextcordException("Cannot send message to closed WS")
         self._logger.debug("> %s", data)
+        payload = json.dumps(data)
+        if isinstance(payload, str):
+            payload = payload.encode("utf-8")
         try:
-            await self._ws.send_str(json.dumps(data))
+            await self._ws.send_bytes(payload)
         except ConnectionResetError:
             raise ShardClosedException()
 
