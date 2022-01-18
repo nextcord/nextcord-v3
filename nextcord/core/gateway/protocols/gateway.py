@@ -39,7 +39,7 @@ class GatewayProtocol(Protocol):
     event_dispatcher: Dispatcher
     raw_dispatcher: Dispatcher
 
-    def __init__(self, state: State, shard_count: Optional[int] = None):
+    def __init__(self, state: State, shard_count: Optional[int] = None) -> None:
         ...
 
     async def connect(self) -> None:
