@@ -23,4 +23,4 @@ __all__ = ("json",)
 try:
     import orjson as json
 except ModuleNotFoundError:
-    import json
+    import json  # type: ignore

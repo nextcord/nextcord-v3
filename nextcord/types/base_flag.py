@@ -1,10 +1,10 @@
-from typing import Callable, Optional
+from typing import Optional
 
 from ..exceptions import NextcordException
 
 
 class IntFlags:
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: bool) -> None:
         self.value: int = 0
 
         flags: Optional[list[str]] = getattr(self, "flags", None)
@@ -18,19 +18,19 @@ class IntFlags:
             setattr(self, flag_name, flag_value)
 
 
-def flag_value(bit: int) -> property:
+def flag_value(bit: int) -> bool:
     if bit < 0:
         raise ValueError("Bit cannot be less than 0")
 
-    @property
-    def flag(self) -> int:
+    @property  # type: ignore
+    def flag(self: IntFlags) -> bool:
         return (self.value & bit) == bit
 
     @flag.setter
-    def flag(self, value: bool) -> None:
+    def flag(self: IntFlags, value: bool) -> None:
         if value:
             self.value |= bit
         else:
             self.value &= ~bit
 
-    return flag
+    return flag  # type: ignore

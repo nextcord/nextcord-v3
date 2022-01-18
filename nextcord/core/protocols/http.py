@@ -22,16 +22,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
+from nextcord.client.state import State
+
 if TYPE_CHECKING:
-    from typing import Any, Literal, Optional
+    from typing import Any, Literal, Optional, Type, TypeVar
 
-    from aiohttp import ClientWebSocketResponse
-    from aiohttp.client_reqrep import ClientResponse
+    from aiohttp import ClientResponse, ClientWebSocketResponse
 
-    from nextcord.type_sheet import TypeSheet
+    from ...type_sheet import TypeSheet
+
+    T = TypeVar("T")
 
 
 class RouteProtocol(Protocol):
+    method: str
+    path: str
+    bucket: str
+    use_webhook_global: bool
+
     def __init__(
         self,
         method: Literal[
@@ -48,40 +56,36 @@ class RouteProtocol(Protocol):
         path: str,
         *,
         use_webhook_global: bool = False,
-        **parameters: dict[str, Any],
-    ):
-        self.method: str
-        self.path: str
-        self.bucket: str
-        self.use_webhook_global: bool
-        self.guild_id: Optional[int]
-        self.channel_id: Optional[int]
-        self.webhook_id: Optional[str]
-        self.webhook_token: Optional[str]
+        **parameters: dict[str, str],
+    ) -> None:
+        ...
 
 
 class BucketProtocol(Protocol):
-    def __init__(self, route: RouteProtocol):
-        self.limit: Optional[int]
-        self.remaining: Optional[int]
-        self.reset_at: Optional[float]
+    limit: Optional[int]
+    remaining: Optional[int]
+    reset_at: Optional[float]
 
-    async def __aenter__(self):
+    def __init__(self, route: RouteProtocol) -> None:
         ...
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def __aenter__(self: T) -> T:
+        ...
+
+    async def __aexit__(self, *_: Any) -> None:
         ...
 
 
 class HTTPClientProtocol(Protocol):
-    def __init__(self, type_sheet: TypeSheet, token: Optional[str] = None):
-        self.base_url: str
-        self.version: int
+    base_url: str
 
-    async def request(self, route: RouteProtocol, **kwargs) -> ClientResponse:
+    def __init__(self, state: State, token: Optional[str] = None) -> None:
         ...
 
-    async def ws_connect(self, url) -> ClientWebSocketResponse:
+    async def request(self, route: RouteProtocol, **kwargs: Any) -> ClientResponse:
+        ...
+
+    async def ws_connect(self, url: str) -> ClientWebSocketResponse:
         ...
 
     async def close(self) -> None:

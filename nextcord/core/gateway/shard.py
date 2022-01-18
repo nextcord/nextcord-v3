@@ -110,7 +110,7 @@ class Shard(ShardProtocol):
             await self.resume()
             self._logger.info("Reconnected to the gateway")
 
-    async def _send(self, data: dict):
+    async def _send(self, data: dict[str, Any]) -> None:
         if self._ws is None:
             raise NextcordException("Cannot send message to uninitialized WS")
         if self._ws.closed:
@@ -124,7 +124,7 @@ class Shard(ShardProtocol):
         except ConnectionResetError:
             raise ShardClosedException()
 
-    async def send(self, data: dict) -> None:
+    async def send(self, data: dict[str, Any]) -> None:
         async with self._ratelimiter:
             await self._send(data)
 
@@ -172,7 +172,7 @@ class Shard(ShardProtocol):
             )
             await sleep(heartbeat_interval)
 
-    def _decompress(self, data) -> bytes:
+    def _decompress(self, data: bytes) -> bytes:
         self._buffer.extend(data)
 
         if len(data) < 4 or data[-4:] != ZLIB_SUFFIX:
@@ -193,19 +193,19 @@ class Shard(ShardProtocol):
         self._buffer.clear()
 
     # Handles
-    async def _handle_hello(self, data: dict) -> None:
+    async def _handle_hello(self, data: dict[str, Any]) -> None:
         heartbeat_interval = data["d"]["heartbeat_interval"] / 1000
 
         intitial_wait_time = heartbeat_interval * random()
         await sleep(intitial_wait_time)
         self._state.loop.create_task(self._heartbeat_loop(heartbeat_interval))
 
-    async def _handle_set_sequence(self, _: int, data: dict) -> None:
+    async def _handle_set_sequence(self, _: int, data: dict[str, Any]) -> None:
         if (seq := data["s"]) is not None:
             self._logger.debug("Updated sequence number to %s", seq)
             self._seq = seq
 
-    async def _handle_heartbeat_ack(self, _: dict) -> None:
+    async def _handle_heartbeat_ack(self, _: dict[str, Any]) -> None:
         self._has_acknowledged_heartbeat = True
 
     async def _handle_disconnect(self, close_code: Optional[int]) -> None:
@@ -244,11 +244,11 @@ class Shard(ShardProtocol):
         # Reconnect and hope it works
         await self.connect()
 
-    async def _handle_ready(self, data: dict) -> None:
+    async def _handle_ready(self, data: dict[str, Any]) -> None:
         self._session_id = data["session_id"]
         self._logger.debug("Session id set!")
 
-    async def _handle_raw_dispatch(self, opcode: int, data: dict) -> None:
+    async def _handle_raw_dispatch(self, opcode: int, data: dict[str, Any]) -> None:
         self._state.gateway.raw_dispatcher.dispatch(opcode, self, data)
 
     async def _handle_dispatch(self, event_name: str, data: Any) -> None:

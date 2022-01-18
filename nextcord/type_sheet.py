@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
     T = TypeVar("T")
 
-    from .core.gateway.gateway import GatewayProtocol
+    from .core.gateway.protocols.gateway import GatewayProtocol
     from .core.gateway.protocols.shard import ShardProtocol
     from .core.protocols.http import BucketProtocol, HTTPClientProtocol
 
@@ -48,7 +48,7 @@ class TypeSheet:
         from .core.http import Bucket as DefaultBucket
         from .core.http import HTTPClient as DefaultHTTPClient
 
-        return cls(
+        return cls(  # type: ignore
             http_client=DefaultHTTPClient,
             http_bucket=DefaultBucket,
             gateway=Gateway,
