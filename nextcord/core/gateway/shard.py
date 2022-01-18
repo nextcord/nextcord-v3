@@ -185,7 +185,7 @@ class Shard(ShardProtocol):
         return decompressed
 
     async def close(self, code=1000) -> None:
-        if self._ws is not None:
+        if self._ws:
             await self._ws.close(code=code)
         self._buffer.clear()
 
