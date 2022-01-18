@@ -57,7 +57,7 @@ class RouteProtocol(Protocol):
         *,
         use_webhook_global: bool = False,
         **parameters: dict[str, str],
-    ):
+    ) -> None:
         ...
 
 
