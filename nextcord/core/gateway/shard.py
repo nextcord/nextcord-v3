@@ -188,7 +188,6 @@ class Shard(ShardProtocol):
         if self._ws is not None:
             await self._ws.close(code=code)
         self._buffer.clear()
-        self._zlib = zlib.decompressobj()
 
     # Handles
     async def _handle_hello(self, data: dict) -> None:
