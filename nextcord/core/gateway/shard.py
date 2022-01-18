@@ -187,7 +187,7 @@ class Shard(ShardProtocol):
         self._buffer = bytearray()  # reset buffer
         return decompressed
 
-    async def close(self, code=1000) -> None:
+    async def close(self, code: int = 1000) -> None:
         if self._ws:
             await self._ws.close(code=code)
         self._buffer.clear()
