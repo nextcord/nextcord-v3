@@ -40,7 +40,7 @@ logger = getLogger(__name__)
 
 
 class Gateway(GatewayProtocol):
-    def __init__(self, state: State, shard_count: Optional[int] = None):
+    def __init__(self, state: State, shard_count: Optional[int] = None) -> None:
         self.state: State = state
 
         # Ratelimiting
