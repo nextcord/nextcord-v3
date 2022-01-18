@@ -91,9 +91,11 @@ class Shard(ShardProtocol):
         self.opcode_dispatcher.add_listener(self._handle_raw_dispatch)
         self.event_dispatcher.add_listener(self._handle_ready, "READY")
         self.event_dispatcher.add_listener(self._handle_dispatch)
+        self.disconnect_dispatcher.add_listener(self._handle_disconnect)
 
     async def connect(self) -> None:
         self._ws = await self._state.http.ws_connect(self._gateway_url)
+        self._zlib = zlib.decompressobj()
         self._state.loop.create_task(self._receive_loop())
         if self._session_id is None:
             async with self._state.gateway.get_identify_ratelimiter(self.shard_id):
@@ -135,6 +137,9 @@ class Shard(ShardProtocol):
                     raw_data = self._decompress(message.data)
                 except PartialDataException:
                     continue
+                except:
+                    # Corruption/drop. Resetting is the only way as we are stateless
+                    return await self.connect()
                 data = json.loads(raw_data.decode("utf-8"))
                 self._logger.debug("< %s", data)
                 self.opcode_dispatcher.dispatch(data["op"], data)
@@ -182,9 +187,10 @@ class Shard(ShardProtocol):
         self._buffer = bytearray()  # reset buffer
         return decompressed
 
-    async def close(self) -> None:
-        if self._ws is not None:
-            await self._ws.close()
+    async def close(self, code=1000) -> None:
+        if self._ws:
+            await self._ws.close(code=code)
+        self._buffer.clear()
 
     # Handles
     async def _handle_hello(self, data: dict) -> None:
