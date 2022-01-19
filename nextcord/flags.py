@@ -2,6 +2,12 @@ from .types.base_flag import IntFlags, flag_value
 
 
 class Intents(IntFlags):
+    """
+    The intents you can connect to the gateway with.
+
+    .. note::
+        See the `documentation <https://discord.dev/topics/gateway#gateway-intents>`_
+    """
     flags = (
         "GUILDS",
         "GUILD_MEMBERS",
