@@ -31,20 +31,56 @@ if TYPE_CHECKING:
 
 
 class ShardProtocol(Protocol):
+    """A gateway `shard <https://discord.dev/topics/gateway#sharding>`_ spawned by :class:`GatewayProtocol`
+
+    Parameters
+    ----------
+    state: :class:`State`
+        The current bot state
+    shard_id: :class:`int`
+        The shard_id you provide to discord in the `identify <https://discord.dev/topics/gateway#identifying>`_ payload when connecting.
+    """
+
     shard_id: int
+    """The shards ID. This is provided by :class:`GatewayProtocol`."""
     ready: Event
+    """A event set when the shard has identified or resumed"""
 
     opcode_dispatcher: Dispatcher
+    """A dispatcher that will dispatched everything that the gateway sends us."""
     event_dispatcher: Dispatcher
+    """A dispatcher that gets all events dispatched via the dispatch opcode from the gateway. This should only dispatch the data"""
 
     def __init__(self, state: State, shard_id: int) -> None:
         ...
 
     async def connect(self) -> None:
+        """Connect to the gateway
+
+        .. note::
+            This is allowed to run forever
+        """
         ...
 
     async def send(self, data: dict[str, Any]) -> None:
+        """Send a raw message directly to the gateway. Generally this should not be used externally as gateway version might differ.
+
+        Parameters
+        ----------
+        data: :class:`dict[str, Any]`
+            The raw data to send
+        """
         ...
 
     async def close(self) -> None:
+        """Closes the connection to the gateway
+
+        .. note::
+            This should only be run once
+
+        Parameters
+        ----------
+        code: :class:`int`
+            Which code to send to discord when closing. A non 1000 code will allow you to resume later.
+        """
         ...
