@@ -8,5 +8,4 @@ sphinx:
 
 python:
   install:
-  - packages:
-      path: "."
+    - requirements: docs/requirements.txt
