@@ -22,3 +22,7 @@
 __version__ = "3.0.0a"
 
 from .client.client import Client
+from .flags import Intents
+from .type_sheet import TypeSheet
+
+__all__ = ("Client", "TypeSheet", "Intents")
