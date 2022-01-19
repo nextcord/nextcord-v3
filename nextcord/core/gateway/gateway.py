@@ -40,8 +40,7 @@ logger = getLogger(__name__)
 
 
 class Gateway(GatewayProtocol):
-    """
-    A fast and simple :class:`GatewayProtocol` implementation
+    """A fast and simple :class:`GatewayProtocol` implementation
 
     Parameters
     ----------
@@ -76,9 +75,7 @@ class Gateway(GatewayProtocol):
         self.raw_dispatcher: Dispatcher = Dispatcher()
 
     async def connect(self) -> None:
-        """
-        Connect to the gateway
-        """
+        """Connect to the gateway"""
         r = await self.state.http.get_gateway_bot()
         gateway_info = await r.json()
 
@@ -97,8 +94,7 @@ class Gateway(GatewayProtocol):
             self.shards.append(shard)
 
     def get_identify_ratelimiter(self, shard_id: int) -> TimesPer:
-        """
-        Get the ratelimiter the shard should use while connecting
+        """Get the ratelimiter the shard should use while connecting
 
         Parameters
         ----------
@@ -112,8 +108,7 @@ class Gateway(GatewayProtocol):
         return self._identify_ratelimits[shard_id % self._max_concurrency]
 
     def should_reconnect(self, shard: ShardProtocol) -> bool:
-        """
-        Called on :class:`ShardProtocol` disconnect to check if it should auto reconnect.
+        """Called on :class:`ShardProtocol` disconnect to check if it should auto reconnect.
         This is used for scaling up shards to stop the old ones from connecting and wasting identifies.
 
         Parameters
@@ -129,8 +124,7 @@ class Gateway(GatewayProtocol):
         return True
 
     async def close(self) -> None:
-        """
-        Close all connections and cleanup.
+        """Close all connections and cleanup.
         This should only be called once
         """
         for shard in self.shards + self._pending_shard_set:

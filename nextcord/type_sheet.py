@@ -35,8 +35,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class TypeSheet:
-    """
-    A place for the library to store which component types we use when creating things.
+    """A place for the library to store which component types we use when creating things.
 
     Parameters
     ----------
@@ -57,8 +56,7 @@ class TypeSheet:
 
     @classmethod
     def default(cls: Type[T]) -> T:
-        """
-        Get the default configuration.
+        """Get the default configuration.
 
         Returns
         -------

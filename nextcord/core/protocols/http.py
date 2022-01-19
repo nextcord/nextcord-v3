@@ -35,8 +35,7 @@ if TYPE_CHECKING:
 
 
 class RouteProtocol(Protocol):
-    """
-    Metadata about a Discord API route
+    """Metadata about a Discord API route
 
     Parameters
     ----------
@@ -82,8 +81,7 @@ class RouteProtocol(Protocol):
 
 
 class BucketProtocol(Protocol):
-    """
-    Ratelimiting for HTTP!
+    """Ratelimiting for HTTP!
 
     You have to implement a async with context manager that waits when it runs out.
     Limit remaining and reset_at will be automatically set by HTTPClient.
@@ -115,8 +113,7 @@ class BucketProtocol(Protocol):
 
 
 class HTTPClientProtocol(Protocol):
-    """
-    A http client to interact with the Discord REST API.
+    """A http client to interact with the Discord REST API.
     This should handle ratelimits.
 
     state: :class:`State`
@@ -129,8 +126,7 @@ class HTTPClientProtocol(Protocol):
         ...
 
     async def request(self, route: RouteProtocol, **kwargs: Any) -> ClientResponse:
-        """
-        Send a HTTP request to the discord API
+        """Send a HTTP request to the discord API
 
         This should use TypeSheet.http_bucket to ratelimit.
 
@@ -142,8 +138,7 @@ class HTTPClientProtocol(Protocol):
         ...
 
     async def ws_connect(self, url: str) -> ClientWebSocketResponse:
-        """
-        Connect to a websocket!
+        """Connect to a websocket!
 
         .. note::
             Aiohttp has a default timeout, we recommend disabling this as its already handled by :meth:`GatewayProtocol <nextcord.core.gateway.protocols.GatewayProtocol>`
@@ -156,16 +151,14 @@ class HTTPClientProtocol(Protocol):
         ...
 
     async def close(self) -> None:
-        """
-        Close the client.
+        """Close the client.
         This should clean up all resources the HTTPClient has created.
         Should only be called once.
         """
         ...
 
     async def get_gateway_bot(self) -> ClientResponse:
-        """
-        Gets gateway url and connection information
+        """Gets gateway url and connection information
 
         .. note::
             `Documentation <https://discord.dev/topics/gateway#get-gateway-bot>`_

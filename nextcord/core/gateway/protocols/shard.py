@@ -31,8 +31,7 @@ if TYPE_CHECKING:
 
 
 class ShardProtocol(Protocol):
-    """
-    A gateway `shard <https://discord.dev/topics/gateway#sharding>`_ spawned by :class:`GatewayProtocol`
+    """A gateway `shard <https://discord.dev/topics/gateway#sharding>`_ spawned by :class:`GatewayProtocol`
 
     Parameters
     ----------
@@ -56,8 +55,7 @@ class ShardProtocol(Protocol):
         ...
 
     async def connect(self) -> None:
-        """
-        Connect to the gateway
+        """Connect to the gateway
 
         .. note::
             This is allowed to run forever
@@ -65,8 +63,7 @@ class ShardProtocol(Protocol):
         ...
 
     async def send(self, data: dict[str, Any]) -> None:
-        """
-        Send a raw message directly to the gateway. Generally this should not be used externally as gateway version might differ.
+        """Send a raw message directly to the gateway. Generally this should not be used externally as gateway version might differ.
 
         Parameters
         ----------
@@ -76,8 +73,7 @@ class ShardProtocol(Protocol):
         ...
 
     async def close(self) -> None:
-        """
-        Closes the connection to the gateway
+        """Closes the connection to the gateway
 
         .. note::
             This should only be run once

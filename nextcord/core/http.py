@@ -47,8 +47,7 @@ logger = getLogger(__name__)
 
 
 class Route(RouteProtocol):
-    """
-    Metadata about a Discord API route
+    """Metadata about a Discord API route
 
     Parameters
     ----------
@@ -81,22 +80,14 @@ class Route(RouteProtocol):
         **parameters: Any,
     ):
         self.method = method
-        """
-        The HTTP method for this route
-        """
+        """The HTTP method for this route"""
         self.unformatted_path = path
-        """
-        The unformatted path
-        """
+        """The unformatted path"""
         self.path = path.format(**parameters)
-        """
-        The route to be requested from discord
-        """
+        """The route to be requested from discord"""
 
         self.use_webhook_global = use_webhook_global
-        """
-        If this route uses the webhook global LINK MISSING
-        """
+        """If this route uses the webhook global LINK MISSING"""
 
         self.guild_id: Optional[int] = parameters.get("guild_id")
         self.channel_id: Optional[int] = parameters.get("channel_id")
@@ -105,15 +96,12 @@ class Route(RouteProtocol):
 
     @property
     def bucket(self) -> str:  # type: ignore
-        """
-        The ratelimit bucket this is under
-        """
+        """The ratelimit bucket this is under"""
         return f"{self.method}:{self.unformatted_path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
 
 
 class Bucket(BucketProtocol):
-    """
-    A simple and fast ratelimiting implementation for HTTP
+    """A simple and fast ratelimiting implementation for HTTP
 
     .. warning::
         This is not multiprocess safe.
@@ -134,9 +122,7 @@ class Bucket(BucketProtocol):
 
     @property  # type: ignore
     def remaining(self) -> Optional[int]:  # type: ignore
-        """
-        How many requests are remaining.
-        """
+        """How many requests are remaining."""
         return self._remaining
 
     @remaining.setter
@@ -148,9 +134,7 @@ class Bucket(BucketProtocol):
             self._loop.call_later(sleep_time, self._reset)
 
     def _reset(self) -> None:
-        """
-        Reset the bucket usage to the top and then start attempting to release the pending requests
-        """
+        """Reset the bucket usage to the top and then start attempting to release the pending requests"""
         self._remaining = self.limit
 
         for _ in range(self._calculated_remaining):
@@ -168,8 +152,7 @@ class Bucket(BucketProtocol):
         return self.remaining - self._reserved
 
     async def __aenter__(self) -> "Bucket":
-        """
-        Reserve a spot in the bucket for the request.
+        """Reserve a spot in the bucket for the request.
         If all are taken, it will add it to a queue.
         """
         # TODO: This should return same type as itself. Not sure what's wrong when I try
@@ -195,8 +178,7 @@ class Bucket(BucketProtocol):
 
 
 class HTTPClient(HTTPClientProtocol):
-    """
-    A http client to interact with the Discord REST API.
+    """A http client to interact with the Discord REST API.
 
     Parameters
     ----------
@@ -236,8 +218,7 @@ class HTTPClient(HTTPClientProtocol):
         headers: Optional[dict[str, str]] = None,
         **kwargs: Any,
     ) -> ClientResponse:
-        """
-        Send a request to discord.
+        """Send a request to discord.
         This automatically handles ratelimits.
 
         .. versionadded:: 3.0

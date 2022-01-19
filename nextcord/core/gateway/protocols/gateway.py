@@ -33,8 +33,7 @@ if TYPE_CHECKING:
 
 
 class GatewayProtocol(Protocol):
-    """
-    The connector the gateway and shard manager.
+    """The connector the gateway and shard manager.
     You are responsible for scaling up/down shards and distributing requests (such as member chunking)
 
     .. note::
@@ -62,14 +61,11 @@ class GatewayProtocol(Protocol):
         ...
 
     async def connect(self) -> None:
-        """
-        Connect to the gateway.
-        """
+        """Connect to the gateway."""
         ...
 
     async def send(self, data: dict[str, Any], *, shard_id: int = 0) -> None:
-        """
-        Sends a raw message to the gateway. Generally this should not be used often as gateway version might differ.
+        """Sends a raw message to the gateway. Generally this should not be used often as gateway version might differ.
 
         Parameters
         ----------
@@ -81,8 +77,7 @@ class GatewayProtocol(Protocol):
         ...
 
     def should_reconnect(self, shard: ShardProtocol) -> bool:
-        """
-        Called on :class:`ShardProtocol` disconnect to check if it should auto reconnect.
+        """Called on :class:`ShardProtocol` disconnect to check if it should auto reconnect.
         This can be used for stopping shards reconnecting temporarily while you are rescaling or similar
 
         Parameters
@@ -93,15 +88,13 @@ class GatewayProtocol(Protocol):
         ...
 
     async def close(self) -> None:
-        """
-        Close all connections and cleanup.
+        """Close all connections and cleanup.
         This should only be called once
         """
         ...
 
     def get_identify_ratelimiter(self, shard_id: int) -> TimesPer:
-        """
-        Get the ratelimiter the shard should use while connecting
+        """Get the ratelimiter the shard should use while connecting
 
         Parameters
         ----------

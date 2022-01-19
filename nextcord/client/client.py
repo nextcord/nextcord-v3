@@ -39,8 +39,7 @@ logger = getLogger(__name__)
 
 
 class Client:
-    """
-    A wrapper against the Bot connection on discord.
+    """A wrapper against the Bot connection on discord.
 
     Parameters
     ----------
@@ -74,8 +73,10 @@ class Client:
         self._error: Optional[NextcordException] = None
 
     async def connect(self) -> None:
-        """
-        Connect to discord.
+        """Connect to discord.
+
+        .. note::
+            This will run until the bot shuts down.
         """
         await self.state.gateway.connect()
 
@@ -84,11 +85,13 @@ class Client:
             raise self._error from None
 
     def run(self) -> None:
-        """
-        Connect to discord
+        """Connect to discord
 
         .. note::
             This is the sync version of :meth:`Client.connect`. If you need to run multiple bots at the same time or similar, you should use that instead.
+
+        .. note::
+            This will run until the bot shuts down.
         """
         try:
             self.state.loop.run_until_complete(self.connect())
@@ -96,9 +99,7 @@ class Client:
             self.state.loop.run_until_complete(self.close())
 
     async def close(self, error: Optional[NextcordException] = None) -> None:
-        """
-        Close the client.
-        """
+        """Close the client."""
         await self.state.http.close()
         await self.state.gateway.close()
         self._error = error
