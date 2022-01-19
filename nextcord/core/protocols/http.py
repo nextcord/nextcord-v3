@@ -35,10 +35,29 @@ if TYPE_CHECKING:
 
 
 class RouteProtocol(Protocol):
+    """
+    Metadata about a Discord API route
+
+    Parameters
+    ----------
+    method: :class:`str`
+        The HTTP method for this route
+    path: :class:`str`
+        The API path
+    use_webhook_global: :class:`bool`
+        If this route uses the webhook global LINK MISSING
+    parameters:
+        Parameters to format path with. You can include guild_id, channel_id, webhook_id or webhook_token to specify ratelimit parameters.
+
+    """
     method: str
+    """The HTTP method"""
     path: str
+    """The route to be requested from discord"""
     bucket: str
+    """The ratelimit bucket this is under"""
     use_webhook_global: bool
+    """If this route uses the webhook global LINK MISSING"""
 
     def __init__(
         self,
@@ -56,15 +75,32 @@ class RouteProtocol(Protocol):
         path: str,
         *,
         use_webhook_global: bool = False,
-        **parameters: dict[str, str],
+        **parameters: Any,
     ) -> None:
         ...
 
 
 class BucketProtocol(Protocol):
+    """
+    Ratelimiting for HTTP!
+
+    You have to implement a async with context manager that waits when it runs out.
+    Limit remaining and reset_at will be automatically set by HTTPClient.
+
+    .. note::
+        Ratelimiting should be implemented as `specified <https://discord.dev/topics/rate-limits>`_
+
+    Parameters
+    ----------
+    route: :class:`RouteProtocol`
+        The route this is for
+    """
     limit: Optional[int]
+    """How many requests a bucket holds"""
     remaining: Optional[int]
+    """How many is remaining."""
     reset_at: Optional[float]
+    """When the bucket resets"""
 
     def __init__(self, route: RouteProtocol) -> None:
         ...
@@ -77,19 +113,58 @@ class BucketProtocol(Protocol):
 
 
 class HTTPClientProtocol(Protocol):
-    base_url: str
+    """
+    A http client to interact with the Discord REST API.
+    This should handle ratelimits.
 
+    state: :class:`State`
+        A bot state
+    token: :class:`Optional[str]`
+        The bot token if present.
+    """
     def __init__(self, state: State, token: Optional[str] = None) -> None:
         ...
 
     async def request(self, route: RouteProtocol, **kwargs: Any) -> ClientResponse:
+        """
+        Send a HTTP request to the discord API
+
+        This should use TypeSheet.http_bucket to ratelimit.
+
+        route: :class:`RouteProtocol`
+            The metadata for this API route
+        kwargs:
+            Keyword only arguments passed to :attr:`ClientSession.request <aiohttp.ClientSession.trace_config>`
+        """
         ...
 
     async def ws_connect(self, url: str) -> ClientWebSocketResponse:
+        """
+        Connect to a websocket!
+
+        .. note::
+            Aiohttp has a default timeout, we recommend disabling this as its already handled by :meth:`GatewayProtocol <nextcord.core.gateway.protocols.GatewayProtocol>`
+
+        Parameters
+        ----------
+        url: :class:`str`
+            The URL of the websocket to connect to
+        """
         ...
 
     async def close(self) -> None:
+        """
+        Close the client.
+        This should clean up all resources the HTTPClient has created.
+        Should only be called once.
+        """
         ...
 
     async def get_gateway_bot(self) -> ClientResponse:
+        """
+        Gets gateway url and connection information
+
+        .. note::
+            `Documentation <https://discord.dev/topics/gateway#get-gateway-bot>`_
+        """
         ...
