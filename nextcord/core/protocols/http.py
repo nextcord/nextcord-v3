@@ -50,6 +50,7 @@ class RouteProtocol(Protocol):
         Parameters to format path with. You can include guild_id, channel_id, webhook_id or webhook_token to specify ratelimit parameters.
 
     """
+
     method: str
     """The HTTP method"""
     path: str
@@ -95,6 +96,7 @@ class BucketProtocol(Protocol):
     route: :class:`RouteProtocol`
         The route this is for
     """
+
     limit: Optional[int]
     """How many requests a bucket holds"""
     remaining: Optional[int]
@@ -122,6 +124,7 @@ class HTTPClientProtocol(Protocol):
     token: :class:`Optional[str]`
         The bot token if present.
     """
+
     def __init__(self, state: State, token: Optional[str] = None) -> None:
         ...
 

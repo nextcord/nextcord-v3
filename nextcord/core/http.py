@@ -61,6 +61,7 @@ class Route(RouteProtocol):
     parameters:
         Parameters to format path with. You can include guild_id, channel_id, webhook_id or webhook_token to specify ratelimit parameters.
     """
+
     def __init__(
         self,
         method: Literal[
@@ -77,7 +78,7 @@ class Route(RouteProtocol):
         path: str,
         *,
         use_webhook_global: bool = False,
-        **parameters: Any
+        **parameters: Any,
     ):
         self.method = method
         """
@@ -113,12 +114,13 @@ class Route(RouteProtocol):
 class Bucket(BucketProtocol):
     """
     A simple and fast ratelimiting implementation for HTTP
-    
+
     .. warning::
         This is not multiprocess safe.
     .. note::
         This is a async context manager.
     """
+
     def __init__(self, route: Route):
         self._remaining: Optional[int] = None
         self.limit: Optional[int] = None
@@ -204,6 +206,7 @@ class HTTPClient(HTTPClientProtocol):
         How many times we will attempt to retry after a unexpected failure (server error or ratelimit issue)
 
     """
+
     def __init__(
         self,
         state: State,
