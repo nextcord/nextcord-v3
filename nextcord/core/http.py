@@ -25,7 +25,7 @@ from asyncio import Future, get_event_loop
 from collections import defaultdict
 from logging import getLogger
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 from aiohttp import ClientSession
 
@@ -77,7 +77,7 @@ class Route(RouteProtocol):
         self.webhook_token: Optional[str] = parameters.get("webhook_token")
 
     @property
-    def bucket(self) -> str:
+    def bucket(self) -> str:  # type: ignore
         return f"{self.method}:{self.unformatted_path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
 
 
@@ -87,23 +87,23 @@ class Bucket(BucketProtocol):
         self.limit: Optional[int] = None
         self.reset_at: Optional[float] = None
         self._route: Route = route
-        self._pending: list[Future] = []
+        self._pending: list[Future[None]] = []
         self._reserved: int = 0
         self._loop = get_event_loop()
 
-    @property
-    def remaining(self) -> Optional[int]:
+    @property  # type: ignore
+    def remaining(self) -> Optional[int]:  # type: ignore
         return self._remaining
 
     @remaining.setter
-    def remaining(self, new_value: int):
+    def remaining(self, new_value: int) -> None:
         self._remaining = new_value
         if new_value == 0:
             self._pending_reset = True
             sleep_time = self.reset_at - time()
             self._loop.call_later(sleep_time, self._reset)
 
-    def _reset(self):
+    def _reset(self) -> None:
         self._remaining = self.limit
 
         for _ in range(self._calculated_remaining):
@@ -120,21 +120,20 @@ class Bucket(BucketProtocol):
         return self.remaining - self._reserved
 
     async def __aenter__(self) -> "Bucket":
+        # TODO: This should return same type as itself. Not sure what's wrong when I try
         if self.remaining is None:
             self._reserved += 1
             return self  # We have no ratelimiting info, let's just try
         if self._calculated_remaining <= 0:
             # Ratelimit pending, let's wait
-            future = Future()
+            future: Future[None] = Future()
             self._pending.append(future)
-            logger.debug(
-                "Waiting for %s to clear up. %s pending", str(self), len(self._pending)
-            )
+            logger.debug("Waiting for %s to clear up. %s pending", str(self), len(self._pending))
             await future
         self._reserved += 1
         return self
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def __aexit__(self, *_: Any) -> None:
         self._reserved -= 1
         if self.remaining is not None:
             self.remaining -= 1
@@ -154,31 +153,23 @@ class HTTPClient(HTTPClientProtocol):
 
         self.max_retries = max_retries
         self._global_lock = self.state.type_sheet.http_bucket(Route("POST", "/global"))
-        self._webhook_global_lock = self.state.type_sheet.http_bucket(
-            Route("POST", "/global/webhook")
-        )
+        self._webhook_global_lock = self.state.type_sheet.http_bucket(Route("POST", "/global/webhook"))
         self._session = ClientSession(json_serialize=json.dumps)
         self._buckets: dict[str, BucketProtocol] = {}
-        self._http_errors = defaultdict((lambda: HTTPException), {})
+        self._http_errors: defaultdict[int, Type[HTTPException]] = defaultdict((lambda: HTTPException), {})
 
-        self._headers = {
-            "User-Agent": "DiscordBot (https://github.com/nextcord/nextcord, {})".format(
-                __version__
-            )
-        }
+        self._headers = {"User-Agent": "DiscordBot (https://github.com/nextcord/nextcord, {})".format(__version__)}
         if self.state.token:
             self._headers["Authorization"] = f"Bot {self.state.token}"
 
     async def request(
         self,
-        route: Route,
+        route: RouteProtocol,
         *,
-        headers: dict[str, Any] = None,
-        **kwargs,
+        headers: Optional[dict[str, str]] = None,
+        **kwargs: Any,
     ) -> ClientResponse:
-        global_lock = (
-            self._webhook_global_lock if route.use_webhook_global else self._global_lock
-        )
+        global_lock = self._webhook_global_lock if route.use_webhook_global else self._global_lock
 
         if headers is None:
             headers = {}
@@ -217,26 +208,21 @@ class HTTPClient(HTTPClientProtocol):
                         logger.debug("Ratelimit exceeded")
                         continue
                     error = await r.json()
-                    raise self._http_errors[status](
-                        r.status, error["code"], error["message"]
-                    )
+                    raise self._http_errors[status](r.status, error["code"], error["message"])
 
                 return r
 
         raise DiscordException(
-            "Ratelimiting failed 5 times. This should only happen if you are running multiple bots with the same IP."
+            f"Ratelimiting failed {self.max_retries} times. This should only happen if you are running multiple bots with the same IP."
         )
 
-    async def ws_connect(self, url) -> ClientWebSocketResponse:
-        return await self._session.ws_connect(
-            url, max_msg_size=0, autoclose=False, headers=self._headers
-        )
+    async def ws_connect(self, url: str) -> ClientWebSocketResponse:
+        return await self._session.ws_connect(url, max_msg_size=0, autoclose=False, headers=self._headers)
 
-    async def close(self):
+    async def close(self) -> None:
         await self._session.close()
 
     # Wrappers around the http methods
-    async def get_gateway_bot(self):
+    async def get_gateway_bot(self) -> ClientResponse:
         route = Route("GET", "/gateway/bot")
-
         return await self.request(route)

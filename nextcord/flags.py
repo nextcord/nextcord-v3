@@ -21,66 +21,19 @@ class Intents(IntFlags):
         "GUILD_SCHEDULED_EVENTS",
     )
 
-    @flag_value(0)
-    def GUILDS(self):
-        ...
-
-    @flag_value(1)
-    def GUILD_MEMBERS(self):
-        ...
-
-    @flag_value(2)
-    def GUILD_BANS(self):
-        ...
-
-    @flag_value(3)
-    def GUILD_EMOJIS_AND_STICKERS(self):
-        ...
-
-    @flag_value(4)
-    def GUILD_INTEGRATIONS(self):
-        ...
-
-    @flag_value(5)
-    def GUILD_WEBHOOKS(self):
-        ...
-
-    @flag_value(6)
-    def GUILD_INVITES(self):
-        ...
-
-    @flag_value(7)
-    def GUILD_VOICE_STATES(self):
-        ...
-
-    @flag_value(8)
-    def GUILD_PRESENCES(self):
-        ...
-
-    @flag_value(9)
-    def GUILD_MESSAGES(self):
-        ...
-
-    @flag_value(10)
-    def GUILD_MESSAGE_REACTIONS(self):
-        ...
-
-    @flag_value(11)
-    def GUILD_MESSAGE_TYPING(self):
-        ...
-
-    @flag_value(12)
-    def DIRECT_MESSAGES(self):
-        ...
-
-    @flag_value(13)
-    def DIRECT_MESSAGE_REACTIONS(self):
-        ...
-
-    @flag_value(14)
-    def DIRECT_MESSAGE_TYPING(self):
-        ...
-
-    @flag_value(16)
-    def GUILD_SCHEDULED_EVENTS(self):
-        ...
+    GUILDS = flag_value(1 << 0)
+    GUILD_MEMBERS = flag_value(1 << 1)
+    GUILD_BANS = flag_value(1 << 2)
+    GUILD_EMOJIS_AND_STICKERS = flag_value(1 << 3)
+    GUILD_INTEGRATIONS = flag_value(1 << 4)
+    GUILD_WEBHOOKS = flag_value(1 << 5)
+    GUILD_INVITES = flag_value(1 << 6)
+    GUILD_VOICE_STATES = flag_value(1 << 7)
+    GUILD_PRESENCES = flag_value(1 << 8)
+    GUILD_MESSAGES = flag_value(1 << 9)
+    GUILD_MESSAGE_REACTIONS = flag_value(1 << 10)
+    GUILD_MESSAGE_TYPING = flag_value(1 << 11)
+    DIRECT_MESSAGES = flag_value(1 << 12)
+    DIRECT_MESSAGE_REACTIONS = flag_value(1 << 13)
+    DIRECT_MESSAGE_TYPING = flag_value(1 << 14)
+    GUILD_SCHEDULED_EVENTS = flag_value(1 << 16)

@@ -27,7 +27,6 @@ from typing import TYPE_CHECKING
 from nextcord.exceptions import NextcordException
 
 from ..type_sheet import TypeSheet
-from .protocols.client import ClientProtocol
 from .state import State
 
 if TYPE_CHECKING:
@@ -39,7 +38,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-class Client(ClientProtocol):
+class Client:
     def __init__(
         self,
         token: str,
@@ -51,7 +50,9 @@ class Client(ClientProtocol):
         if type_sheet is None:
             type_sheet = TypeSheet.default()
         self.state: State = State(self, type_sheet, token, intents.value, shard_count)
-        self._error_future: Future = Future()
+        self._error_future: Future[
+            None
+        ] = Future()  # TODO: Make this return a Optional error instead of setting a attribute
         self._error: Optional[NextcordException] = None
 
     async def connect(self) -> None:
@@ -67,7 +68,7 @@ class Client(ClientProtocol):
         except KeyboardInterrupt:
             self.state.loop.run_until_complete(self.close())
 
-    async def close(self, error: Optional[NextcordException] = None):
+    async def close(self, error: Optional[NextcordException] = None) -> None:
         await self.state.http.close()
         await self.state.gateway.close()
         self._error = error

@@ -85,17 +85,17 @@ class Shard(ShardProtocol):
         self.disconnect_dispatcher: Dispatcher = Dispatcher()
 
         # Register handles
-        self.opcode_dispatcher.add_listener(OpcodeEnum.HELLO.value, self._handle_hello)
-        self.opcode_dispatcher.add_listener(
-            OpcodeEnum.HEARTBEAT_ACK.value, self._handle_heartbeat_ack
-        )
-        self.opcode_dispatcher.add_listener(None, self._handle_set_sequence)
-        self.event_dispatcher.add_listener(None, self._handle_raw_dispatch)
-        self.event_dispatcher.add_listener("READY", self._handle_ready)
-        self.event_dispatcher.add_listener(None, self._handle_dispatch)
+        self.opcode_dispatcher.add_listener(self._handle_hello, OpcodeEnum.HELLO.value)
+        self.opcode_dispatcher.add_listener(self._handle_heartbeat_ack, OpcodeEnum.HEARTBEAT_ACK.value)
+        self.opcode_dispatcher.add_listener(self._handle_set_sequence)
+        self.opcode_dispatcher.add_listener(self._handle_raw_dispatch)
+        self.event_dispatcher.add_listener(self._handle_ready, "READY")
+        self.event_dispatcher.add_listener(self._handle_dispatch)
+        self.disconnect_dispatcher.add_listener(self._handle_disconnect)
 
     async def connect(self) -> None:
         self._ws = await self._state.http.ws_connect(self._gateway_url)
+        self._zlib = zlib.decompressobj()
         self._state.loop.create_task(self._receive_loop())
         if self._session_id is None:
             async with self._state.gateway.get_identify_ratelimiter(self.shard_id):
@@ -110,25 +110,23 @@ class Shard(ShardProtocol):
             await self.resume()
             self._logger.info("Reconnected to the gateway")
 
-    async def send(self, data: dict, *, ignore_ratelimit: bool = False) -> None:
+    async def _send(self, data: dict[str, Any]) -> None:
         if self._ws is None:
             raise NextcordException("Cannot send message to uninitialized WS")
         if self._ws.closed:
             raise NextcordException("Cannot send message to closed WS")
-        if not ignore_ratelimit:
-            async with self._ratelimiter:
-                self._logger.debug("> %s", data)
-                try:
-                    await self._ws.send_str(json.dumps(data))
-                except ConnectionResetError:
-                    raise ShardClosedException()
-        else:
-            # Ignore WS ratelimits for heartbeating. We have a 3 tolerance for this per 60s.
-            self._logger.debug("> %s", data)
-            try:
-                await self._ws.send_str(json.dumps(data))
-            except ConnectionResetError:
-                raise ShardClosedException()
+        self._logger.debug("> %s", data)
+        payload = json.dumps(data)
+        if isinstance(payload, str):
+            payload = payload.encode("utf-8")
+        try:
+            await self._ws.send_bytes(payload)
+        except ConnectionResetError:
+            raise ShardClosedException()
+
+    async def send(self, data: dict[str, Any]) -> None:
+        async with self._ratelimiter:
+            await self._send(data)
 
     async def _receive_loop(self) -> None:
         if self._ws is None:
@@ -139,6 +137,9 @@ class Shard(ShardProtocol):
                     raw_data = self._decompress(message.data)
                 except PartialDataException:
                     continue
+                except:
+                    # Corruption/drop. Resetting is the only way as we are stateless
+                    return await self.connect()
                 data = json.loads(raw_data.decode("utf-8"))
                 self._logger.debug("< %s", data)
                 self.opcode_dispatcher.dispatch(data["op"], data)
@@ -155,9 +156,7 @@ class Shard(ShardProtocol):
         except ValueError:
             self._logger.warning("Disconnect with unknown close code %s", close_code)
         else:
-            self._logger.info(
-                "Disconnected with code %s (%s)", close_code, close_code_enum
-            )
+            self._logger.info("Disconnected with code %s (%s)", close_code, close_code_enum)
         self.disconnect_dispatcher.dispatch(close_code)
 
     async def _heartbeat_loop(self, heartbeat_interval: float) -> None:
@@ -168,13 +167,12 @@ class Shard(ShardProtocol):
                 await self._ws.close(code=1008)
                 return
             self._has_acknowledged_heartbeat = False
-            await self.send(
+            await self._send(
                 {"op": OpcodeEnum.HEARTBEAT.value, "d": self._seq},
-                ignore_ratelimit=True,
             )
             await sleep(heartbeat_interval)
 
-    def _decompress(self, data) -> bytes:
+    def _decompress(self, data: bytes) -> bytes:
         self._buffer.extend(data)
 
         if len(data) < 4 or data[-4:] != ZLIB_SUFFIX:
@@ -189,24 +187,25 @@ class Shard(ShardProtocol):
         self._buffer = bytearray()  # reset buffer
         return decompressed
 
-    async def close(self) -> None:
-        if self._ws is not None:
-            await self._ws.close()
+    async def close(self, code: int = 1000) -> None:
+        if self._ws:
+            await self._ws.close(code=code)
+        self._buffer.clear()
 
     # Handles
-    async def _handle_hello(self, data: dict) -> None:
+    async def _handle_hello(self, data: dict[str, Any]) -> None:
         heartbeat_interval = data["d"]["heartbeat_interval"] / 1000
 
         intitial_wait_time = heartbeat_interval * random()
         await sleep(intitial_wait_time)
         self._state.loop.create_task(self._heartbeat_loop(heartbeat_interval))
 
-    async def _handle_set_sequence(self, _: int, data: dict) -> None:
+    async def _handle_set_sequence(self, _: int, data: dict[str, Any]) -> None:
         if (seq := data["s"]) is not None:
             self._logger.debug("Updated sequence number to %s", seq)
             self._seq = seq
 
-    async def _handle_heartbeat_ack(self, _: dict) -> None:
+    async def _handle_heartbeat_ack(self, _: dict[str, Any]) -> None:
         self._has_acknowledged_heartbeat = True
 
     async def _handle_disconnect(self, close_code: Optional[int]) -> None:
@@ -231,9 +230,7 @@ class Shard(ShardProtocol):
             CloseCodeEnum.INVALID_API_VERSION,
         ]:
             # TODO: Error? These should never happen with the current sharding implementation although throwing a custom error might be a good idea?
-            raise NextcordException(
-                f"Unexpected discord close code: {CloseCodeEnum(close_code)}"
-            )
+            raise NextcordException(f"Unexpected discord close code: {CloseCodeEnum(close_code)}")
 
         # Errors which require a new session
         if close_code in [
@@ -247,11 +244,11 @@ class Shard(ShardProtocol):
         # Reconnect and hope it works
         await self.connect()
 
-    async def _handle_ready(self, data: dict) -> None:
+    async def _handle_ready(self, data: dict[str, Any]) -> None:
         self._session_id = data["session_id"]
         self._logger.debug("Session id set!")
 
-    async def _handle_raw_dispatch(self, opcode: int, data: dict) -> None:
+    async def _handle_raw_dispatch(self, opcode: int, data: dict[str, Any]) -> None:
         self._state.gateway.raw_dispatcher.dispatch(opcode, self, data)
 
     async def _handle_dispatch(self, event_name: str, data: Any) -> None:

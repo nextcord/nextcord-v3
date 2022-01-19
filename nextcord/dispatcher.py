@@ -25,57 +25,56 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, Awaitable, Callable
 
 logger = getLogger(__name__)
 
 
 class Dispatcher:
-    def __init__(self):
-        self.listeners: dict[Any, list[Any]] = defaultdict(list)
-        self.predicates: dict[Any, list[tuple[Any, Any]]] = defaultdict(list)
+    def __init__(self) -> None:
+        self.listeners: defaultdict[Any, list[Any]] = defaultdict(list)
+        self.predicates: defaultdict[Any, list[tuple[Any, Any]]] = defaultdict(list)
         self.global_listeners: list[Any] = []
-        self.loop = get_event_loop()
+        self._loop = get_event_loop()
 
-    def dispatch(self, event_name: Any, *args):
+    def dispatch(self, event_name: Any, *args: Any) -> None:
         logger.debug("Dispatching event %s", event_name)
         # Normal listeners
         for listener in self.listeners[event_name]:
-            self.loop.create_task(listener(*args))
+            self._loop.create_task(listener(*args))
 
         # Predicates
         for predicate_info in self.predicates:
-            self.loop.create_task(
-                self._dispatch_predicate(predicate_info, event_name, *args)
-            )
+            self._loop.create_task(self._dispatch_predicate(predicate_info, event_name, *args))
 
         for listener in self.global_listeners:
-            self.loop.create_task(listener(event_name, *args))
+            self._loop.create_task(listener(event_name, *args))
 
-    async def _dispatch_predicate(self, predicate_info: Any, event_name: Any, *args):
+    async def _dispatch_predicate(self, predicate_info: Any, event_name: Any, *args: Any) -> None:
         predicate = predicate_info[0]
         listener = predicate_info[1]
         result = await predicate(*args)
 
         if result:
             logger.debug("Predicate succeeded, calling listener")
-            self.predicates[event_name].remove((predicate, listener))
-            self.loop.create_task(listener(*args))  # TODO: Should we just await here?
+            self.predicates[event_name].remove(predicate_info)
+            self._loop.create_task(listener(*args))  # TODO: Should we just await here?
 
-    def listen(self, event_name: Any = None):
+    def listen(self, event_name: Any = None) -> Callable[[Any], Callable[..., Awaitable[Any]]]:
         # TODO: Fix type
-        def inner(coro: Any):
+        def inner(coro: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
             if event_name is None:
                 self.global_listeners.append(coro)
             else:
                 self.listeners[event_name].append(coro)
+            return coro
 
         return inner
 
-    def add_predicate(self, event_name: Any, predicate: Any, callback: Any):
+    def add_predicate(self, event_name: Any, predicate: Any, callback: Any) -> None:
         self.predicates[event_name].append((predicate, callback))
 
-    def add_listener(self, event_name: Any, listener: Any):
+    def add_listener(self, listener: Any, event_name: Any = None) -> None:
         if event_name is None:
             self.global_listeners.append(listener)
         else:

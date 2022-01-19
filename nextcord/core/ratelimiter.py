@@ -27,7 +27,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Optional
+    from typing import Any
 
 logger = getLogger(__name__)
 
@@ -38,13 +38,14 @@ class TimesPer:
         self.per: float = per
         self.current: int = self.limit
 
-        self._reserved: list[Future] = []
+        self._reserved: list[Future[None]] = []
         self.loop: AbstractEventLoop = get_event_loop()
         self.pending_reset: bool = False
 
     async def __aenter__(self) -> "TimesPer":
         if self.current == 0:
-            self._reserved.append(future := Future())
+            future: Future[None] = Future()
+            self._reserved.append(future)
             await future
         self.current -= 1
 
@@ -54,7 +55,7 @@ class TimesPer:
 
         return self
 
-    async def __aexit__(self, *_) -> None:
+    async def __aexit__(self, *_: Any) -> None:
         ...
 
     def reset(self) -> None:
