@@ -166,7 +166,7 @@ class Embed:
 
     @classmethod
     def from_dict(cls, data: dict):
-        embed = cls.__init__()
+        embed = cls()
         for key, value in data.items():
             if key in ["video", "provider"]:
                 setattr(embed, "_" + key, value)

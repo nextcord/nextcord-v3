@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Protocol
 
 if TYPE_CHECKING:
     from ...client.state import State
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-class UserProtocol:
+class UserProtocol(Protocol):
     __slots__ = (
         "id",
         "username",
@@ -95,9 +95,7 @@ class ClientUser(UserProtocol):
         self.flags = data.get("flags")
         self.bio = data.get("bio")
 
-    async def edit(
-        self, *, username: Optional[str] = None, avatar: Optional[bytes] = None
-    ):
+    async def edit(self, *, username: Optional[str] = None, avatar: Optional[bytes] = None):
         payload = {}
         if username is not None:
             payload["username"] = username
