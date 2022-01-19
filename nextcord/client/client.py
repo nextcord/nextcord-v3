@@ -39,6 +39,23 @@ logger = getLogger(__name__)
 
 
 class Client:
+    """
+    A wrapper against the Bot connection on discord.
+
+    Parameters
+    ----------
+    token: :class:`str`
+        The bot token to connect with. This can be found at the `developer portal <https://discord.com/developers/>`_
+    intents: :class:`Intents`
+        The intents to connect with.
+    type_sheet: :class:`TypeSheet`
+        What components to use for the different internals
+    shard_count: :class:`Optional[int]`
+        How many shards to connect with. If it is None it will be automatically fetched and kept up to date from discord
+
+        .. note::
+            This will be locked in if you set it. If your bot ever outgrows your shardcount, you will get a error
+    """
     def __init__(
         self,
         token: str,
@@ -56,6 +73,9 @@ class Client:
         self._error: Optional[NextcordException] = None
 
     async def connect(self) -> None:
+        """
+        Connect to discord.
+        """
         await self.state.gateway.connect()
 
         await self._error_future
@@ -63,12 +83,21 @@ class Client:
             raise self._error from None
 
     def run(self) -> None:
+        """
+        Connect to discord
+
+        .. note::
+            This is the sync version of :meth:`Client.connect`. If you need to run multiple bots at the same time or similar, you should use that instead.
+        """
         try:
             self.state.loop.run_until_complete(self.connect())
         except KeyboardInterrupt:
             self.state.loop.run_until_complete(self.close())
 
     async def close(self, error: Optional[NextcordException] = None) -> None:
+        """
+        Close the client.
+        """
         await self.state.http.close()
         await self.state.gateway.close()
         self._error = error

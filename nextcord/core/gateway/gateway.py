@@ -40,6 +40,17 @@ logger = getLogger(__name__)
 
 
 class Gateway(GatewayProtocol):
+    """
+    A fast and simple :class:`GatewayProtocol` implementation
+
+    Parameters
+    ----------
+    state: :class:`State`
+        The current state of the bot
+    shard_count: :class:`Optional[int]`
+        The current shard count. If this is not None it is expected for it to error instead of changing shard count
+
+    """
     def __init__(self, state: State, shard_count: Optional[int] = None) -> None:
         self.state: State = state
 
@@ -49,10 +60,12 @@ class Gateway(GatewayProtocol):
 
         # Shard count
         self.shard_count: Optional[int] = shard_count
+        """The current shard count"""
         self._shard_count_locked: bool = self.shard_count is not None
 
         # Shard sets
         self.shards: list[ShardProtocol] = []
+        """The currently active shards"""
         # When we get disconnected for too low shard count, we start creating a second set of inactive shards.
         self._pending_shard_set: list[Any] = []
         self._recreating_shards: bool = False
@@ -62,6 +75,9 @@ class Gateway(GatewayProtocol):
         self.raw_dispatcher: Dispatcher = Dispatcher()
 
     async def connect(self) -> None:
+        """
+        Connect to the gateway
+        """
         r = await self.state.http.get_gateway_bot()
         gateway_info = await r.json()
 
@@ -80,11 +96,30 @@ class Gateway(GatewayProtocol):
             self.shards.append(shard)
 
     def get_identify_ratelimiter(self, shard_id: int) -> TimesPer:
+        """
+        Get the ratelimiter the shard should use while connecting
+
+        Parameters
+        ----------
+        shard_id: :class:`int`
+            The shard id of the connecting shard.
+
+        """
+
         if self._max_concurrency is None:
             raise NextcordException("Cannot get identify ratelimit before max_concurrency is filled")
         return self._identify_ratelimits[shard_id % self._max_concurrency]
 
     def should_reconnect(self, shard: ShardProtocol) -> bool:
+        """
+        Called on :class:`ShardProtocol` disconnect to check if it should auto reconnect.
+        This is used for scaling up shards to stop the old ones from connecting and wasting identifies.
+
+        Parameters
+        ----------
+        shard: :class:`ShardProtocol`
+            The shard asking if it should reconnect
+        """
         if not self._recreating_shards:
             return True
         if shard in self.shards:
@@ -93,6 +128,10 @@ class Gateway(GatewayProtocol):
         return True
 
     async def close(self) -> None:
+        """
+        Close all connections and cleanup.
+        This should only be called once
+        """
         for shard in self.shards + self._pending_shard_set:
             await shard.close()
 
