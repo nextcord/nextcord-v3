@@ -49,6 +49,7 @@ class TypeSheet:
     shard:
         The connections to discord spawned by :class:`GatewayProtocol`
     """
+
     http_client: Type[HTTPClientProtocol]
     http_bucket: Type[BucketProtocol]
     gateway: Type[GatewayProtocol]

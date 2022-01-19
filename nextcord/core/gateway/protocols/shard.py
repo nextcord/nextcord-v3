@@ -41,6 +41,7 @@ class ShardProtocol(Protocol):
     shard_id: :class:`int`
         The shard_id you provide to discord in the `identify <https://discord.dev/topics/gateway#identifying>`_ payload when connecting.
     """
+
     shard_id: int
     """The shards ID. This is provided by :class:`GatewayProtocol`."""
     ready: Event
@@ -76,8 +77,8 @@ class ShardProtocol(Protocol):
 
     async def close(self) -> None:
         """
-        Closes the connection to the gateway  
-        
+        Closes the connection to the gateway
+
         .. note::
             This should only be run once
 

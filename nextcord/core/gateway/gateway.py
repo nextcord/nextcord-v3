@@ -51,6 +51,7 @@ class Gateway(GatewayProtocol):
         The current shard count. If this is not None it is expected for it to error instead of changing shard count
 
     """
+
     def __init__(self, state: State, shard_count: Optional[int] = None) -> None:
         self.state: State = state
 

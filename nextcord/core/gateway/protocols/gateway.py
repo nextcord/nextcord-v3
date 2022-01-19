@@ -48,6 +48,7 @@ class GatewayProtocol(Protocol):
     shard_count: :class:`Optional[int]`
         The current shard count. If this is not None it is expected for it to error instead of changing shard count
     """
+
     state: State
     shard_count: Optional[int]
     """The active shard count. None if not set yet."""

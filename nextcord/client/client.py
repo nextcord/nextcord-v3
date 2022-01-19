@@ -56,6 +56,7 @@ class Client:
         .. note::
             This will be locked in if you set it. If your bot ever outgrows your shardcount, you will get a error
     """
+
     def __init__(
         self,
         token: str,

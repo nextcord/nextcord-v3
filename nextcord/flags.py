@@ -8,6 +8,7 @@ class Intents(IntFlags):
     .. note::
         See the `documentation <https://discord.dev/topics/gateway#gateway-intents>`_
     """
+
     flags = (
         "GUILDS",
         "GUILD_MEMBERS",
