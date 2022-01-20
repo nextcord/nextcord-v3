@@ -13,7 +13,7 @@ Internals API Reference
 
 Protocols
 ---------
-.. automodule:: nextcord.core.protocols.http
+.. automodule:: nextcord.core.http.protocols.http
     :members:
 .. automodule:: nextcord.core.gateway.protocols
     :members:

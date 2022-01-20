@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
     from aiohttp import ClientResponse, ClientWebSocketResponse
 
-    from ...type_sheet import TypeSheet
+    from ....type_sheet import TypeSheet
 
     T = TypeVar("T")
 
@@ -104,7 +104,23 @@ class BucketProtocol(Protocol):
     async def __aexit__(self, *_: Any) -> None:
         ...
 
-    async def update(self, limit: int, remaining: int, reset_at: float) -> None:
+    async def update(self, limit: int, remaining: int, reset_after: float) -> None:
+        """
+        Update the current state of the :class:`BucketProtocol` with information from the headers returned from :class:`HTTPClientProtocol`
+        This information is fetched from the `ratelimit <http://discord.dev/topics/rate-limits>`_ headers
+
+        Parameters
+        -----------
+        limit: :class:`int`
+            How many requests this bucket type can hold
+        remaining: :class:`int`
+            How many requests left this bucket can hold
+
+            .. note::
+                This might not always be in order. This depends on how you implement :class:`BucketProtocol`
+        reset_after: :class:`float`
+            How many seconds until the bucket is resetting
+        """
         ...
 
 
