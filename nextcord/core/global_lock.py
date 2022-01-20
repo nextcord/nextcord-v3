@@ -1,5 +1,4 @@
-from asyncio import Event, AbstractEventLoop, get_event_loop
-
+from asyncio import AbstractEventLoop, Event, get_event_loop
 from typing import Any
 
 
