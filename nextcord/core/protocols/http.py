@@ -95,13 +95,6 @@ class BucketProtocol(Protocol):
         The route this is for
     """
 
-    limit: Optional[int]
-    """How many requests a bucket holds"""
-    remaining: Optional[int]
-    """How many is remaining."""
-    reset_at: Optional[float]
-    """When the bucket resets"""
-
     def __init__(self, route: RouteProtocol) -> None:
         ...
 
@@ -109,6 +102,9 @@ class BucketProtocol(Protocol):
         ...
 
     async def __aexit__(self, *_: Any) -> None:
+        ...
+
+    async def update(self, limit: int, remaining: int, reset_at: float) -> None:
         ...
 
 

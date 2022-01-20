@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 from asyncio import Future, get_event_loop
+from asyncio.locks import Lock
 from collections import defaultdict
 from logging import getLogger
 from time import time
@@ -29,8 +30,15 @@ from typing import TYPE_CHECKING, Type
 
 from aiohttp import ClientSession
 
+from nextcord.core.global_lock import GlobalLock
+
 from .. import __version__
-from ..exceptions import CloudflareBanException, DiscordException, HTTPException
+from ..exceptions import (
+    CloudflareBanException,
+    DiscordException,
+    HTTPException,
+    NextcordException,
+)
 from ..utils import json
 from .protocols.http import BucketProtocol, HTTPClientProtocol, RouteProtocol
 
@@ -99,6 +107,9 @@ class Route(RouteProtocol):
         """The ratelimit bucket this is under"""
         return f"{self.method}:{self.unformatted_path}:{self.guild_id}:{self.channel_id}:{self.webhook_id}:{self.webhook_token}"
 
+    def __repr__(self) -> str:
+        return self.bucket
+
 
 class Bucket(BucketProtocol):
     """A simple and fast ratelimiting implementation for HTTP
@@ -117,49 +128,70 @@ class Bucket(BucketProtocol):
         """When the Bucket fills up again. (UTC time)"""
         self._route: Route = route
         self._pending: list[Future[None]] = []
+        self._pending_reset: bool = False
         self._reserved: int = 0
+        """Waiting for the network to be executed, this is calculated into :attr:`Bucket.remaining` but will persist across resets"""
         self._loop = get_event_loop()
 
-    @property  # type: ignore
-    def remaining(self) -> Optional[int]:  # type: ignore
-        """How many requests are remaining."""
-        return self._remaining
+    async def update(self, limit: int, remaining: int, reset_at: float) -> None:
+        missing_info = self._missing_info
 
-    @remaining.setter
-    def remaining(self, new_value: int) -> None:
-        self._remaining = new_value
-        if new_value == 0:
+        self._remaining = remaining
+        self.reset_at = reset_at
+        self.limit = limit
+
+        if missing_info:
+            self._clear_pending(self.remaining)
+
+        logger.debug(
+            "Bucket update: Limit: %s, Remaining: %s, Reserved: %s", self.limit, self.remaining, self._reserved
+        )
+
+        if not self._pending_reset:
             self._pending_reset = True
             sleep_time = self.reset_at - time()
+            logger.debug("Bucket resetting in %s", sleep_time)
             self._loop.call_later(sleep_time, self._reset)
+
+    @property
+    def remaining(self) -> int:
+        """A estimation of how many requests are remaining."""
+        if self._remaining is not None:
+            # Remove reserved from it as they might fire inside the current bucket
+            return max(self._remaining - self._reserved, 0)
+        # If we don't have any data we just have to try.
+        logger.debug("Bucket has no info, reserved: %s", self._reserved)
+        return 1 - self._reserved
 
     def _reset(self) -> None:
         """Reset the bucket usage to the top and then start attempting to release the pending requests"""
+        logger.debug("Resetting bucket")
+        self._pending_reset = False
+        if self.limit is None:
+            raise NextcordException("Reset was called before limit was set")
         self._remaining = self.limit
 
-        for _ in range(self._calculated_remaining):
+        # Release all the pending
+        logger.debug("Resetting %s %s/%s", self, self.remaining, len(self._pending))
+        self._clear_pending(self.remaining)
+
+    def _clear_pending(self, max_amount: int) -> None:
+        """Clear out the pending requests up to max_amount
+        This will quit early if there is no more pending
+        """
+        for _ in range(max_amount):
             try:
                 future = self._pending.pop(0)
             except IndexError:
                 break  # No more pendings, ignore
             future.set_result(None)
 
-    @property
-    def _calculated_remaining(self) -> int:
-        # TODO: Replace this with the getter of remaining
-        if self.remaining is None:
-            return 1  # We have no data, let's just assume we have one request so we can fetch the info.
-        return self.remaining - self._reserved
-
     async def __aenter__(self) -> "Bucket":
         """Reserve a spot in the bucket for the request.
         If all are taken, it will add it to a queue.
         """
         # TODO: This should return same type as itself. Not sure what's wrong when I try
-        if self.remaining is None:
-            self._reserved += 1
-            return self  # We have no ratelimiting info, let's just try
-        if self._calculated_remaining <= 0:
+        if self.remaining <= 0:
             # Ratelimit pending, let's wait
             future: Future[None] = Future()
             self._pending.append(future)
@@ -169,12 +201,16 @@ class Bucket(BucketProtocol):
         return self
 
     async def __aexit__(self, *_: Any) -> None:
-        """
-        Request finished
-        """
+        """Request finished"""
+        # TODO: if there was a error we waste a spot in our ratelimit. This is not ideal.
         self._reserved -= 1
-        if self.remaining is not None:
-            self.remaining -= 1
+
+    def __repr__(self) -> str:
+        return repr(self._route)
+
+    @property
+    def _missing_info(self) -> bool:
+        return self._remaining is None
 
 
 class HTTPClient(HTTPClientProtocol):
@@ -201,8 +237,8 @@ class HTTPClient(HTTPClientProtocol):
         self.state = state
 
         self.max_retries = max_retries
-        self._global_lock = self.state.type_sheet.http_bucket(Route("POST", "/global"))
-        self._webhook_global_lock = self.state.type_sheet.http_bucket(Route("POST", "/global/webhook"))
+        self._global_lock = GlobalLock()
+        self._webhook_global_lock = GlobalLock()
         self._session = ClientSession(json_serialize=json.dumps)
         self._buckets: dict[str, BucketProtocol] = {}
         self._http_errors: defaultdict[int, Type[HTTPException]] = defaultdict((lambda: HTTPException), {})
@@ -238,6 +274,8 @@ class HTTPClient(HTTPClientProtocol):
             headers = {}
         headers |= self._headers
 
+        # TODO: This is a mess, please split it up
+
         for _ in range(self.max_retries):
             async with global_lock:
                 bucket_str = route.bucket
@@ -257,9 +295,11 @@ class HTTPClient(HTTPClientProtocol):
                 logger.debug("%s %s", route.method, route.path)
 
                 try:
-                    bucket.reset_at = float(r.headers["X-RateLimit-Reset"])
-                    bucket.limit = int(r.headers["X-RateLimit-Limit"])
-                    bucket.remaining = int(r.headers["X-RateLimit-Remaining"])
+                    limit = int(r.headers["X-RateLimit-Limit"])
+                    remaining = int(r.headers["X-RateLimit-Remaining"])
+                    reset_at = float(r.headers["X-RateLimit-Reset"])
+
+                    await bucket.update(limit, remaining, reset_at)
                 except KeyError:
                     # Ratelimiting info is not sent on some routes and on error
                     pass
@@ -267,8 +307,13 @@ class HTTPClient(HTTPClientProtocol):
                 if (status := r.status) >= 300:
                     if status == 429:
                         if "via" not in r.headers.keys():
-                            raise
-                        logger.debug("Ratelimit exceeded")
+                            raise CloudflareBanException()
+                        logger.warning("Ratelimit exceeded")
+                        ratelimit_data = await r.json()
+                        logger.debug(ratelimit_data)
+                        if ratelimit_data["global"]:
+                            logger.info("Global ratelimit reached!")
+                            await global_lock.lock(ratelimit_data["reset_after"])
                         continue
                     error = await r.json()
                     raise self._http_errors[status](r.status, error["code"], error["message"])
