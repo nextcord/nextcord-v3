@@ -19,13 +19,13 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
-    ...
+    from .snowflake import Snowflake
 
 
-Role, User = None  # TODO: DEFINE and import
+Role, User = None, None  # TODO: DEFINE and import
 
 logger = getLogger(__name__)
 
@@ -37,15 +37,15 @@ class AllowedMentions:
         everyone: bool = False,
         roles: Union[bool, list[Role], Role] = False,
         users: Union[bool, User, list[User]] = True,
-        replied_user: bool = None,
+        replied_user: Optional[bool] = None,
     ):
         self.everyone = everyone
         self.roles = roles
         self.users = users
         self.replied_user = replied_user
 
-    def to_dict(self):
-        allowed = {"parse": []}
+    def to_dict(self) -> dict[str, Union[list[str], list[Snowflake], bool]]:
+        allowed: dict[str, Union[list[str], list[Snowflake], bool]] = {"parse": []}
         if self.everyone:
             allowed["parse"].append("everyone")
 
@@ -66,12 +66,12 @@ class AllowedMentions:
         if self.replied_user:
             allowed["replied_user"] = bool(self.replied_user)
 
-    @classmethod
-    def none(cls):
-        return cls.__init__(
-            everyone=False, roles=False, users=False, replied_user=False
-        )
+        return allowed
 
     @classmethod
-    def all(cls):
-        return cls.__init__(everyone=True, roles=True, users=True, replied_user=True)
+    def none(cls) -> AllowedMentions:
+        return cls(everyone=False, roles=False, users=False, replied_user=False)
+
+    @classmethod
+    def all(cls) -> AllowedMentions:
+        return cls(everyone=True, roles=True, users=True, replied_user=True)

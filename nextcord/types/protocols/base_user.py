@@ -61,7 +61,7 @@ class UserProtocol(Protocol):
         self._state = state
         self._update(data)
 
-    def _update(self, data):
+    def _update(self, data: dict) -> None:
         self.id = data["id"]
         self.username = data["username"]
         self.discriminator = data["discriminator"]
@@ -87,7 +87,7 @@ class ClientUser(UserProtocol):
     def __init__(self, state: State, data: dict):
         super().__init__(state=state, data=data)
 
-    def _update(self, data):
+    def _update(self, data: dict):
         super()._update(data)
         self.mfa_enabled = data.get("mfa_enabled")
         self.locale = data.get("locale")
@@ -95,7 +95,7 @@ class ClientUser(UserProtocol):
         self.flags = data.get("flags")
         self.bio = data.get("bio")
 
-    async def edit(self, *, username: Optional[str] = None, avatar: Optional[bytes] = None):
+    async def edit(self, *, username: Optional[str] = None, avatar: Optional[bytes] = None) -> None:
         payload = {}
         if username is not None:
             payload["username"] = username

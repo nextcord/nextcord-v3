@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from logging import getLogger
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -81,6 +81,7 @@ class EmbedField:
 
 
 class Embed:
+    _special = ["provider", "video"]
     __slots__ = (
         "title",
         "description",
@@ -95,6 +96,10 @@ class Embed:
         "provider",
         "video",
     )
+
+    if TYPE_CHECKING:
+        _video: EmbedVideo
+        _provider: EmbedProvider
 
     def __init__(
         self,
@@ -137,7 +142,7 @@ class Embed:
 
     def edit_field(
         self,
-        index: Optional[int],
+        index: int,
         name: Optional[str] = None,
         value: Optional[str] = None,
         *,
@@ -157,18 +162,18 @@ class Embed:
             pass
 
     @property
-    def video(self):
+    def video(self) -> Optional[EmbedVideo]:
         return self._video
 
     @property
-    def provider(self):
+    def provider(self) -> Optional[EmbedProvider]:
         return self._provider
 
     @classmethod
     def from_dict(cls, data: dict):
         embed = cls()
         for key, value in data.items():
-            if key in ["video", "provider"]:
+            if key in cls._special:
                 setattr(embed, "_" + key, value)
             elif key in embed.__slots__:
                 setattr(embed, key, value)
@@ -177,10 +182,10 @@ class Embed:
 
         return embed
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Union[EmbedFile, EmbedProvider, EmbedAuthor, EmbedFooter, EmbedField]]:
         data = {}
         for key in self.__slots__:
-            if key in ["video", "provider"]:
+            if key in cls._special:
                 data[key] = getattr(self, "_" + key)
             else:
                 data[key] = getattr(self, key)
