@@ -16,7 +16,5 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from typing import Union
-
-Snowflake = Union[str, int]
-SnowflakeArray = list[Snowflake]
+Snowflake = int
+SnowflakeList = list[Snowflake]
