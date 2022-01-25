@@ -18,13 +18,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import typing
+from dataclasses import asdict, dataclass, is_dataclass
+from datetime import datetime
 from logging import getLogger
 from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
+    ...
 
 logger = getLogger(__name__)
 
@@ -81,7 +82,7 @@ class EmbedField:
 
 
 class Embed:
-    _special = ["provider", "video"]
+    _special = {"provider": EmbedProvider, "video": EmbedVideo}
     __slots__ = (
         "title",
         "description",
@@ -93,8 +94,8 @@ class Embed:
         "thumbnail",
         "author",
         "fields",
-        "provider",
-        "video",
+        "_provider",
+        "_video",
     )
 
     if TYPE_CHECKING:
@@ -126,6 +127,9 @@ class Embed:
         self.thumbnail = thumbnail if isinstance(thumbnail, EmbedThumbnail) else None
         self.author = author if isinstance(author, EmbedAuthor) else None
         self.fields = fields if isinstance(fields, list) else []
+
+        self._provider = None
+        self._video = None
 
     def add_field(
         self,
@@ -172,22 +176,42 @@ class Embed:
     @classmethod
     def from_dict(cls, data: dict):
         embed = cls()
+        typehints = typing.get_type_hints(cls.__init__)
         for key, value in data.items():
+            if key in typehints:
+                constr = typing.get_args(typehints[key])[0]
+            elif key in cls._special:
+                constr = cls._special[key]
+            else:
+                continue  # Invalid key, not implemented
+
+            if value is None:
+                val = None
+            elif isinstance(value, dict):
+                val = constr(**value)
+            else:
+                val = constr(value)
+
             if key in cls._special:
-                setattr(embed, "_" + key, value)
+                setattr(embed, "_" + key, val)
             elif key in embed.__slots__:
-                setattr(embed, key, value)
+                setattr(embed, key, val)
             else:
                 continue  # TODO: Unknown key, should it raise an error?
 
         return embed
 
-    def to_dict(self) -> dict[str, Union[EmbedFile, EmbedProvider, EmbedAuthor, EmbedFooter, EmbedField]]:
+    def to_dict(self) -> dict[str, Union[str, dict[str, str]]]:
         data = {}
         for key in self.__slots__:
-            if key in cls._special:
-                data[key] = getattr(self, "_" + key)
+            key = key.lstrip("_")
+            if key in self._special:
+                val = getattr(self, "_" + key)
             else:
-                data[key] = getattr(self, key)
+                val = getattr(self, key)
+            if is_dataclass(val):
+                val = asdict(val)
+
+            data[key] = val
 
         return data
