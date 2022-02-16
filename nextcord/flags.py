@@ -25,7 +25,7 @@ class Intents(IntFlags):
         "DIRECT_MESSAGES",
         "DIRECT_MESSAGE_REACTIONS",
         "DIRECT_MESSAGE_TYPING",
-        "MESSAGES_CONTENT",
+        "MESSAGES_CONTENT",  # type: ignore
         "GUILD_SCHEDULED_EVENTS",
     )
 
@@ -44,5 +44,5 @@ class Intents(IntFlags):
     DIRECT_MESSAGES = flag_value(1 << 12)
     DIRECT_MESSAGE_REACTIONS = flag_value(1 << 13)
     DIRECT_MESSAGE_TYPING = flag_value(1 << 14)
-    MESSAGES_CONTENT = flag_value(1 << 15)
+    MESSAGES_CONTENT = flag_value(1 << 15)  # type: ignore
     GUILD_SCHEDULED_EVENTS = flag_value(1 << 16)
