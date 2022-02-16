@@ -25,7 +25,7 @@ class Intents(IntFlags):
         "DIRECT_MESSAGES",
         "DIRECT_MESSAGE_REACTIONS",
         "DIRECT_MESSAGE_TYPING",
-        "MESSAGES_CONTENT"
+        "MESSAGES_CONTENT",
         "GUILD_SCHEDULED_EVENTS",
     )
 
