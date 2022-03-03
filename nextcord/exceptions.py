@@ -33,6 +33,14 @@ class CloudflareBanException(RatelimitException):
         )
 
 
+class InteractionBucketFailure(RatelimitException):
+    """
+    You attempted to apply an Interaction based cooldown
+    to a Callable which does not take Interaction as the
+    first parameter.
+    """
+
+
 class CallableOnCooldown(RatelimitException):
     """
     This :type:`Callable` is currently on cooldown.
