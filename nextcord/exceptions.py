@@ -1,7 +1,7 @@
 from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from nextcord.cooldowns import CooldownBucket, Cooldown
+    from nextcord.checks.cooldowns import Cooldown
 
 
 class NextcordException(Exception):

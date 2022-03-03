@@ -23,14 +23,13 @@ from __future__ import annotations
 import asyncio
 import functools
 import time
-from asyncio import Future
 from asyncio.events import AbstractEventLoop, get_event_loop
 from logging import getLogger
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar
+from typing import Callable, Optional, TypeVar
 
-from nextcord.cooldowns import CooldownBucket
-from nextcord.cooldowns.buckets import _HashableArguments
-from nextcord.cooldowns.protocols import Bucket
+from nextcord.checks.cooldowns import CooldownBucket
+from nextcord.checks.cooldowns.buckets import _HashableArguments
+from nextcord.checks.cooldowns.protocols import Bucket
 from nextcord.exceptions import CallableOnCooldown
 
 logger = getLogger(__name__)

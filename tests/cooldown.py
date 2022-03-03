@@ -1,11 +1,10 @@
 import asyncio
-import time
 from enum import Enum
 
 import pytest
 
-from nextcord.cooldowns import Cooldown, CooldownBucket, cooldown
-from nextcord.cooldowns.buckets import _HashableArguments
+from nextcord.checks.cooldowns import Cooldown, CooldownBucket, cooldown
+from nextcord.checks.cooldowns.buckets import _HashableArguments
 from nextcord.exceptions import CallableOnCooldown
 
 
