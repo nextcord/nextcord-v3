@@ -1,4 +1,7 @@
+import math
 from enum import Enum
+from collections import Hashable
+from typing import Any, Union
 
 
 class _HashableArguments:
@@ -21,9 +24,56 @@ class _HashableArguments:
 
         return self.args == other.args and self.kwargs == other.kwargs
 
+    @staticmethod
+    def __get_hash(item: Union[Hashable, Any]):
+        if not isinstance(item, Hashable):
+            item = repr(item)
+
+        return hash(item)
+
     def __hash__(self) -> int:
-        # TODO This needs to be better suited to uniqueness and nesting
-        return hash(repr(self.args) + repr(self.kwargs))
+        """
+        Hashing strategy.
+
+        If we are wrapping nothing, well, -_-
+        return the hash of a constant.
+
+        If we are hashing *args, we can simply
+        return the hash of the containing tuple
+        and let python deal with it.
+
+        If we are hashing **kwargs we hash
+        a tuple of tuples, in the form
+        ((key, value), ...)
+
+        For *args and **kwargs we combine
+        both approaches for the format:
+        (*args, (key, value), ...)
+        """
+        has_args: bool = bool(self.args)
+        has_kwargs: bool = bool(self.kwargs)
+        if not has_args and not has_kwargs:
+            # I'd like a better solution / constant
+            return hash(math.pi)
+
+        if has_args and not has_kwargs:
+            # Hash the tuple and let python deal with it
+            return hash(self.args)
+
+        if not has_args and has_kwargs:
+            # Has kwargs as a tuple of tuples
+            rolling_hash = []
+            for k, v in self.kwargs.items():
+                rolling_hash.append((k, v))
+
+            return hash(tuple(rolling_hash))
+
+        # Same as for kwargs, but with args in it
+        rolling_hash = [*self.args]
+        for k, v in self.kwargs.items():
+            rolling_hash.append((k, v))
+
+        return hash(tuple(rolling_hash))
 
 
 class CooldownBucket(Enum):
