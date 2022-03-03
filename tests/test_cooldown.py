@@ -53,7 +53,7 @@ def test_get_bucket():
 async def test_cooldown_decor_simple():
     # Can be called once every second
     # Default bucket is ALL arguments
-    @cooldown(1, 1)
+    @cooldown(1, 1, bucket=CooldownBucket.all)
     async def test_func(*args, **kwargs) -> (tuple, dict):
         return args, kwargs
 
@@ -140,7 +140,7 @@ async def test_stacked_cooldowns():
     with pytest.raises(CallableOnCooldown):
         await test_func(2)
 
-    # Args don't matter, its a kwargs based Bucket
+    # Args don't matter, its a kwargs based BucketProtocol
     await test_func(1, two=2)
     await test_func(two=2)
     with pytest.raises(CallableOnCooldown):

@@ -1,1 +1,1 @@
-from .bucket import Bucket
+from .bucket import BucketProtocol

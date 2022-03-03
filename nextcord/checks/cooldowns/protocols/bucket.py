@@ -1,8 +1,8 @@
 from typing import Protocol, Any
 
 
-class Bucket(Protocol):
-    """Bucket implementation Protocol."""
+class BucketProtocol(Protocol):
+    """BucketProtocol implementation Protocol."""
 
     def process(self, *args, **kwargs) -> Any:
         """

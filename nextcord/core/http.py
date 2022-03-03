@@ -119,7 +119,7 @@ class Bucket(BucketProtocol):
             return 1  # We have no data, let's just assume we have one request so we can fetch the info.
         return self.remaining - self._reserved
 
-    async def __aenter__(self) -> "Bucket":
+    async def __aenter__(self) -> "BucketProtocol":
         if self.remaining is None:
             self._reserved += 1
             return self  # We have no ratelimiting info, let's just try

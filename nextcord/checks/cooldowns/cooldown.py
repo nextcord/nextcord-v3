@@ -27,17 +27,17 @@ from asyncio.events import AbstractEventLoop, get_event_loop
 from logging import getLogger
 from typing import Callable, Optional, TypeVar
 
-from nextcord.checks.cooldowns import CooldownBucket
-from nextcord.checks.cooldowns.buckets import _HashableArguments
-from nextcord.checks.cooldowns.protocols import Bucket
-from nextcord.exceptions import CallableOnCooldown
+from . import CooldownBucket
+from .buckets import _HashableArguments
+from .protocols import BucketProtocol
+from ...exceptions import CallableOnCooldown
 
 logger = getLogger(__name__)
 
 T = TypeVar("T", bound=_HashableArguments)
 
 
-def cooldown(limit: int, per: float, bucket: Optional[Bucket] = None):
+def cooldown(limit: int, per: float, bucket: BucketProtocol):
     """
     A thing
 
@@ -48,11 +48,9 @@ def cooldown(limit: int, per: float, bucket: Optional[Bucket] = None):
         period specified by ``per``
     per: float
         The time period related to ``limit``
-    bucket: Optional[Bucket]
+    bucket: BucketProtocol
         The :class:`Bucket` implementation to use
         as a bucket to separate cooldown buckets.
-
-        Defaults to :class:`CooldownBucket.all`
 
     Raises
     ------
@@ -61,7 +59,6 @@ def cooldown(limit: int, per: float, bucket: Optional[Bucket] = None):
     CallableOnCooldown
         This call resulted in a cooldown being put into effect
     """
-    bucket = bucket or CooldownBucket.all
     _cooldown: Cooldown = Cooldown(limit, per, bucket)
 
     def decorator(func: Callable) -> Callable:
@@ -126,7 +123,7 @@ class Cooldown:
         self,
         limit: int,
         per: float,
-        bucket: Optional[Bucket] = None,
+        bucket: Optional[BucketProtocol] = None,
         func: Optional[Callable] = None,
     ) -> None:
         """
@@ -137,7 +134,7 @@ class Cooldown:
             period specified by ``per``
         per: float
             The time period related to ``limit``
-        bucket: Optional[Bucket]
+        bucket: Optional[BucketProtocol]
             The :class:`Bucket` implementation to use
             as a bucket to separate cooldown buckets.
 
@@ -152,7 +149,7 @@ class Cooldown:
         self.per: float = per
 
         self._func: Optional[Callable] = func
-        self._bucket: Bucket = bucket
+        self._bucket: BucketProtocol = bucket
         self.loop: AbstractEventLoop = get_event_loop()
         self.pending_reset: bool = False
         self.last_reset_at: Optional[float] = None
@@ -172,7 +169,7 @@ class Cooldown:
         self._last_bucket = self.get_bucket(*args, **kwargs)
         return self
 
-    def _get_cooldown_for_bucket(self, bucket: _HashableArguments):
+    def _get_cooldown_for_bucket(self, bucket: _HashableArguments) -> _CooldownTimesPer:
         try:
             return self._cache[bucket]
         except KeyError:
@@ -244,7 +241,7 @@ class Cooldown:
         return f"Cooldown(limit={self.limit}, per={self.per}, func={self._func})"
 
     @property
-    def bucket(self) -> Bucket:
+    def bucket(self) -> BucketProtocol:
         return self._bucket
 
     @property
