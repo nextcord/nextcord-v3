@@ -2,7 +2,7 @@
 name = "nextcord"
 version = "3.0.0"
 description = "A modern, async, and feature-full wrapper for the Discord API, made in Python."
-authors = ["vcokltfre <vcokltfre@gmail.com>", "tag-epic <tagepicuwu@gmai.com>"]
+authors = ["vcokltfre <vcokltfre@gmail.com>", "tag-epic <epic@duck.com>"]
 license = "MIT"
 repository = "https://github.com/nextcord/nextcord-v3"
 classifiers = [
@@ -17,6 +17,9 @@ classifiers = [
     "Topic :: Communications :: Chat",
     "Typing :: Typed"
 ]
+packages = [
+    { include = "nextcord" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -24,11 +27,18 @@ orjson = {version = ">=3.5.4", optional = true}
 aiodns = {version = ">=1.1", optional = true}
 Brotli = {version = "^1.0.9", optional = true}
 cchardet = {version = "^2.1.7", optional = true}
+aiohttp = ">=3.6.0,<4.0.0"
 
 [tool.poetry.dev-dependencies]
 isort = "^5.10.1"
 black = "^21.12b0"
 pytest = "^6.2.5"
+taskipy = "^1.9.0"
+mypy = "^0.931"
+types-orjson = "^3.6.2"
+Sphinx = "^4.4.0"
+sphinx-copybutton = "^0.4.0"
+furo = "^2022.1.2"
 pytest-asyncio = "^0.16.0"
 
 [tool.poetry.extras]
@@ -36,6 +46,14 @@ speed = ["orjson", "aiodns", "Brotli", "cchardet"]
 
 [tool.isort]
 profile = "black"
+
+[tool.black]
+line-length = 120
+target-version = ["py39"]
+
+[tool.taskipy.tasks]
+lint = "black . && isort --profile black ."
+mypy = "mypy nextcord --python-version 3.9 --strict"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
