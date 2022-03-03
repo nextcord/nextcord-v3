@@ -28,11 +28,11 @@ from asyncio.events import AbstractEventLoop, get_event_loop
 from logging import getLogger
 from typing import Callable, Optional, TypeVar
 
+from ...exceptions import CallableOnCooldown
+from ...utils import MaybeCoro, maybe_coro
 from . import CooldownBucket
 from .buckets import _HashableArguments
 from .protocols import BucketProtocol
-from ...exceptions import CallableOnCooldown
-from ...utils import MaybeCoro, maybe_coro
 
 logger = getLogger(__name__)
 

@@ -21,7 +21,7 @@ DEALINGS IN THE SOFTWARE.
 __all__ = ("json",)
 
 import asyncio
-from typing import Callable, Any, Coroutine
+from typing import Any, Callable, Coroutine
 
 try:
     import orjson as json
