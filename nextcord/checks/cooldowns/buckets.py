@@ -1,7 +1,6 @@
 import math
 from enum import Enum
-from collections import Hashable
-from typing import Any, Union, Optional
+from typing import Optional
 
 from ...exceptions import InteractionBucketFailure
 
@@ -12,7 +11,8 @@ class _HashableArguments:
     # do this as mutable items are not hashable,
     # therefore are not suitable for usage as
     # dictionary keys. Thus this wraps those
-    # arguments with repr hashes used
+    # arguments with the hash strategy layed out
+    # in __hash__
     def __init__(self, *args, **kwargs):
         self.args: tuple = args
         self.kwargs: dict = kwargs
@@ -25,13 +25,6 @@ class _HashableArguments:
             return False
 
         return self.args == other.args and self.kwargs == other.kwargs
-
-    @staticmethod
-    def __get_hash(item: Union[Hashable, Any]):
-        if not isinstance(item, Hashable):
-            item = repr(item)
-
-        return hash(item)
 
     def __hash__(self) -> int:
         """

@@ -81,7 +81,7 @@ def cooldown(limit: int, per: float, bucket: BucketProtocol):
     return decorator
 
 
-class _CooldownTimesPer:
+class CooldownTimesPer:
     # Essentially TimesPer but modified
     # to throw Exceptions instead of queue
     def __init__(
@@ -90,6 +90,15 @@ class _CooldownTimesPer:
         per: float,
         _cooldown: Cooldown,
     ) -> None:
+        """
+
+        Parameters
+        ----------
+        limit: int
+        per: float
+        _cooldown: Cooldown
+            A backref to the parent cooldown manager.
+        """
         self.limit: int = limit
         self.per: float = per
         self._cooldown: Cooldown = _cooldown
@@ -97,7 +106,7 @@ class _CooldownTimesPer:
         self.loop: AbstractEventLoop = get_event_loop()
         self.pending_reset: bool = False
 
-    async def __aenter__(self) -> "_CooldownTimesPer":
+    async def __aenter__(self) -> "CooldownTimesPer":
         if self.current == 0:
             raise CallableOnCooldown(self._cooldown.func, self._cooldown, self.per)
 
@@ -113,7 +122,13 @@ class _CooldownTimesPer:
         ...
 
     def reset(self):
-        self.current = self.limit
+        # Reset the cooldown by 'adding'
+        # one more 'possible' call.
+        if self.current == 0:
+            # Possible edge case
+            return None
+
+        self.current += 1
 
 
 class Cooldown:
@@ -155,10 +170,10 @@ class Cooldown:
         self.last_reset_at: Optional[float] = None
         self._last_bucket: Optional[_HashableArguments] = None
 
-        self._cache: dict[_HashableArguments, _CooldownTimesPer] = {}
+        self._cache: dict[_HashableArguments, CooldownTimesPer] = {}
 
     async def __aenter__(self) -> "Cooldown":
-        bucket: _CooldownTimesPer = self._get_cooldown_for_bucket(self._last_bucket)
+        bucket: CooldownTimesPer = self._get_cooldown_for_bucket(self._last_bucket)
         async with bucket:
             return self
 
@@ -169,11 +184,11 @@ class Cooldown:
         self._last_bucket = self.get_bucket(*args, **kwargs)
         return self
 
-    def _get_cooldown_for_bucket(self, bucket: _HashableArguments) -> _CooldownTimesPer:
+    def _get_cooldown_for_bucket(self, bucket: _HashableArguments) -> CooldownTimesPer:
         try:
             return self._cache[bucket]
         except KeyError:
-            _bucket = _CooldownTimesPer(self.limit, self.per, self)
+            _bucket = CooldownTimesPer(self.limit, self.per, self)
             self._cache[bucket] = _bucket
             return _bucket
 
@@ -245,5 +260,5 @@ class Cooldown:
         return self._bucket
 
     @property
-    def func(self):
+    def func(self) -> Optional[Callable]:
         return self._func
