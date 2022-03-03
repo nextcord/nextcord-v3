@@ -32,13 +32,19 @@ from . import CooldownBucket
 from .buckets import _HashableArguments
 from .protocols import BucketProtocol
 from ...exceptions import CallableOnCooldown
+from ...utils import MaybeCoro, maybe_coro
 
 logger = getLogger(__name__)
 
 T = TypeVar("T", bound=_HashableArguments)
 
 
-def cooldown(limit: int, time_period: float, bucket: BucketProtocol):
+def cooldown(
+    limit: int,
+    time_period: float,
+    bucket: BucketProtocol,
+    check: Optional[MaybeCoro] = lambda *args, **kwargs: True,
+):
     """
     A thing
 
@@ -52,6 +58,16 @@ def cooldown(limit: int, time_period: float, bucket: BucketProtocol):
     bucket: BucketProtocol
         The :class:`Bucket` implementation to use
         as a bucket to separate cooldown buckets.
+    check: Optional[MaybeCoro]
+        A Callable which dictates whether or not
+        to apply the cooldown on current invoke.
+
+        If this Callable returns a truthy value,
+        then the cooldown will be used for the current call.
+
+        I.e. If you wished to bypass cooldowns, you
+        would return False if you invoked the Callable.
+
 
     Raises
     ------
@@ -75,6 +91,10 @@ def cooldown(limit: int, time_period: float, bucket: BucketProtocol):
 
         @functools.wraps(func)
         async def inner(*args, **kwargs):
+            use_cooldown = await maybe_coro(check, *args, **kwargs)
+            if not use_cooldown:
+                return await maybe_coro(func, *args, **kwargs)
+
             async with _cooldown(*args, **kwargs):
                 result = await func(*args, **kwargs)
 

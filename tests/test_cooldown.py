@@ -146,3 +146,48 @@ async def test_stacked_cooldowns():
     await test_func(two=2)
     with pytest.raises(CallableOnCooldown):
         await test_func(two=2)
+
+
+def test_sync_cooldowns():
+    with pytest.raises(RuntimeError):
+        # Cant use sync functions
+        @cooldown(1, 1, bucket=CooldownBucket.args)
+        def test_func(*args, **kwargs) -> (tuple, dict):
+            return args, kwargs
+
+
+@pytest.mark.asyncio
+async def test_checks():
+    """Ensures the check works as expected"""
+    # Only apply cooldowns if the first arg is 1
+    @cooldown(
+        1, 1, bucket=CooldownBucket.args, check=lambda *args, **kwargs: args[0] == 1
+    )
+    async def test_func(*args, **kwargs) -> (tuple, dict):
+        return args, kwargs
+
+    await test_func(1, two=2)
+    await test_func(2)
+    await test_func(tuple())
+    with pytest.raises(CallableOnCooldown):
+        await test_func(1)
+
+
+@pytest.mark.asyncio
+async def test_async_checks():
+    """Ensures the check works as expected with async methods"""
+    # Only apply cooldowns if the first arg is 1
+    async def mock_db_check(*args, **kwargs):
+        # You can do database calls here or anything
+        # since this is an async context
+        return args[0] == 1
+
+    @cooldown(1, 1, bucket=CooldownBucket.args, check=mock_db_check)
+    async def test_func(*args, **kwargs) -> (tuple, dict):
+        return args, kwargs
+
+    await test_func(1, two=2)
+    await test_func(2)
+    await test_func(tuple())
+    with pytest.raises(CallableOnCooldown):
+        await test_func(1)
