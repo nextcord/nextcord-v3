@@ -10,14 +10,15 @@ from nextcord.exceptions import CallableOnCooldown
 
 @pytest.mark.asyncio
 async def test_cooldown():
-    cooldown = Cooldown(1, 1, CooldownBucket.args)
+    cooldown = Cooldown(1, 0.25, CooldownBucket.args)
 
     async with cooldown:
         with pytest.raises(CallableOnCooldown):
             async with cooldown:
                 pass
 
-        await asyncio.sleep(1)  # Cooldown 'length'
+        await asyncio.sleep(0.3)  # Cooldown 'length'
+        # This tests that cooldowns get reset
         async with cooldown:
             pass
 
@@ -129,8 +130,8 @@ async def test_custom_buckets():
 
 @pytest.mark.asyncio
 async def test_stacked_cooldowns():
-    # Can call ONCE per second using the same args
-    # Can call TWICE per second using the same kwargs
+    # Can call ONCE time_period second using the same args
+    # Can call TWICE time_period second using the same kwargs
     @cooldown(1, 1, bucket=CooldownBucket.args)
     @cooldown(2, 1, bucket=CooldownBucket.kwargs)
     async def test_func(*args, **kwargs) -> (tuple, dict):

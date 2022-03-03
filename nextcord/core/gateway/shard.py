@@ -123,7 +123,7 @@ class Shard(ShardProtocol):
                 except ConnectionResetError:
                     raise ShardClosedException()
         else:
-            # Ignore WS ratelimits for heartbeating. We have a 3 tolerance for this per 60s.
+            # Ignore WS ratelimits for heartbeating. We have a 3 tolerance for this time_period 60s.
             self._logger.debug("> %s", data)
             try:
                 await self._ws.send_str(json.dumps(data))

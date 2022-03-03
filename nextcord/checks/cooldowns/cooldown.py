@@ -46,7 +46,7 @@ def cooldown(limit: int, per: float, bucket: BucketProtocol):
     ----------
     limit: int
         How many call's can be made in the time
-        period specified by ``per``
+        period specified by ``time_period``
     per: float
         The time period related to ``limit``
     bucket: BucketProtocol
@@ -88,7 +88,7 @@ class CooldownTimesPer:
     def __init__(
         self,
         limit: int,
-        per: float,
+        time_period: float,
         _cooldown: Cooldown,
     ) -> None:
         """
@@ -96,12 +96,12 @@ class CooldownTimesPer:
         Parameters
         ----------
         limit: int
-        per: float
+        time_period: float
         _cooldown: Cooldown
             A backref to the parent cooldown manager.
         """
         self.limit: int = limit
-        self.per: float = per
+        self.time_period: float = time_period
         self._cooldown: Cooldown = _cooldown
         self.current: int = limit
         self.loop: AbstractEventLoop = get_event_loop()
@@ -109,13 +109,15 @@ class CooldownTimesPer:
 
     async def __aenter__(self) -> "CooldownTimesPer":
         if self.current == 0:
-            raise CallableOnCooldown(self._cooldown.func, self._cooldown, self.per)
+            raise CallableOnCooldown(
+                self._cooldown.func, self._cooldown, self.time_period
+            )
 
         self.current -= 1
 
         if not self.pending_reset:
             self.pending_reset = True
-            self.loop.call_later(self.per, self.reset)
+            self.loop.call_later(self.time_period, self.reset)
 
         return self
 
@@ -125,8 +127,13 @@ class CooldownTimesPer:
     def reset(self):
         # Reset the cooldown by 'adding'
         # one more 'possible' call.
-        if self.current == 0:
-            # Possible edge case
+        if self.current < 0:
+            # Possible edge case?
+            return None
+
+        elif self.current == self.limit:
+            # Don't ever give more windows
+            # then the passed limit
             return None
 
         self.current += 1
@@ -138,7 +145,7 @@ class Cooldown:
     def __init__(
         self,
         limit: int,
-        per: float,
+        time_period: float,
         bucket: Optional[BucketProtocol] = None,
         func: Optional[Callable] = None,
     ) -> None:
@@ -147,8 +154,8 @@ class Cooldown:
         ----------
         limit: int
             How many call's can be made in the time
-            period specified by ``per``
-        per: float
+            period specified by ``time_period``
+        time_period: float
             The time period related to ``limit``
         bucket: Optional[BucketProtocol]
             The :class:`Bucket` implementation to use
@@ -162,7 +169,7 @@ class Cooldown:
         # See TimesPer for inspo, however it doesnt
         # use that due to the required changes and flexibility
         self.limit: int = limit
-        self.per: float = per
+        self.time_period: float = time_period
 
         self._func: Optional[Callable] = func
         self._bucket: BucketProtocol = bucket
@@ -189,7 +196,7 @@ class Cooldown:
         try:
             return self._cache[bucket]
         except KeyError:
-            _bucket = CooldownTimesPer(self.limit, self.per, self)
+            _bucket = CooldownTimesPer(self.limit, self.time_period, self)
             self._cache[bucket] = _bucket
             return _bucket
 
@@ -248,13 +255,13 @@ class Cooldown:
                 self.reset(bucket)
 
         current_time = time.time()
-        self.last_reset_at = current_time + self.per
+        self.last_reset_at = current_time + self.time_period
 
         _bucket = self._get_cooldown_for_bucket(bucket)
         _bucket.reset()
 
     def __repr__(self) -> str:
-        return f"Cooldown(limit={self.limit}, per={self.per}, func={self._func})"
+        return f"Cooldown(limit={self.limit}, time_period={self.time_period}, func={self._func})"
 
     @property
     def bucket(self) -> BucketProtocol:
