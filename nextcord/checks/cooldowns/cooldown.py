@@ -38,7 +38,7 @@ logger = getLogger(__name__)
 T = TypeVar("T", bound=_HashableArguments)
 
 
-def cooldown(limit: int, per: float, bucket: BucketProtocol):
+def cooldown(limit: int, time_period: float, bucket: BucketProtocol):
     """
     A thing
 
@@ -47,7 +47,7 @@ def cooldown(limit: int, per: float, bucket: BucketProtocol):
     limit: int
         How many call's can be made in the time
         period specified by ``time_period``
-    per: float
+    time_period: float
         The time period related to ``limit``
     bucket: BucketProtocol
         The :class:`Bucket` implementation to use
@@ -59,8 +59,11 @@ def cooldown(limit: int, per: float, bucket: BucketProtocol):
         Expected the decorated function to be a coroutine
     CallableOnCooldown
         This call resulted in a cooldown being put into effect
+    InteractionBucketFailure
+        You attempted to use an Interaction based bucket
+        on a non-interaction based Callable.
     """
-    _cooldown: Cooldown = Cooldown(limit, per, bucket)
+    _cooldown: Cooldown = Cooldown(limit, time_period, bucket)
 
     def decorator(func: Callable) -> Callable:
         if not asyncio.iscoroutinefunction(func):
