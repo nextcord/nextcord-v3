@@ -32,7 +32,7 @@ from ...exceptions import CallableOnCooldown
 from ...utils import MaybeCoro, maybe_coro
 from . import CooldownBucket
 from .buckets import _HashableArguments
-from .protocols import BucketProtocol
+from .protocols import CooldownBucketProtocol
 
 logger = getLogger(__name__)
 
@@ -42,7 +42,7 @@ T = TypeVar("T", bound=_HashableArguments)
 def cooldown(
     limit: int,
     time_period: float,
-    bucket: BucketProtocol,
+    bucket: CooldownBucketProtocol,
     check: Optional[MaybeCoro] = lambda *args, **kwargs: True,
 ):
     """
@@ -55,7 +55,7 @@ def cooldown(
         period specified by ``time_period``
     time_period: float
         The time period related to ``limit``
-    bucket: BucketProtocol
+    bucket: CooldownBucketProtocol
         The :class:`Bucket` implementation to use
         as a bucket to separate cooldown buckets.
     check: Optional[MaybeCoro]
@@ -119,7 +119,9 @@ class CooldownTimesPer:
         Parameters
         ----------
         limit: int
+            How many items are allowed
         time_period: float
+            The period limit applies to
         _cooldown: Cooldown
             A backref to the parent cooldown manager.
         """
@@ -128,19 +130,14 @@ class CooldownTimesPer:
         self._cooldown: Cooldown = _cooldown
         self.current: int = limit
         self.loop: AbstractEventLoop = get_event_loop()
-        self.pending_reset: bool = False
 
     async def __aenter__(self) -> "CooldownTimesPer":
         if self.current == 0:
-            raise CallableOnCooldown(
-                self._cooldown.func, self._cooldown, self.time_period
-            )
+            raise CallableOnCooldown(self._cooldown.func, self._cooldown, self.time_period)
 
         self.current -= 1
 
-        if not self.pending_reset:
-            self.pending_reset = True
-            self.loop.call_later(self.time_period, self.reset)
+        self.loop.call_later(self.time_period, self.reset)
 
         return self
 
@@ -169,7 +166,7 @@ class Cooldown:
         self,
         limit: int,
         time_period: float,
-        bucket: Optional[BucketProtocol] = None,
+        bucket: Optional[CooldownBucketProtocol] = None,
         func: Optional[Callable] = None,
     ) -> None:
         """
@@ -180,7 +177,7 @@ class Cooldown:
             period specified by ``time_period``
         time_period: float
             The time period related to ``limit``
-        bucket: Optional[BucketProtocol]
+        bucket: Optional[CooldownBucketProtocol]
             The :class:`Bucket` implementation to use
             as a bucket to separate cooldown buckets.
 
@@ -195,7 +192,7 @@ class Cooldown:
         self.time_period: float = time_period
 
         self._func: Optional[Callable] = func
-        self._bucket: BucketProtocol = bucket
+        self._bucket: CooldownBucketProtocol = bucket
         self.loop: AbstractEventLoop = get_event_loop()
         self.pending_reset: bool = False
         self.last_reset_at: Optional[float] = None
@@ -287,7 +284,7 @@ class Cooldown:
         return f"Cooldown(limit={self.limit}, time_period={self.time_period}, func={self._func})"
 
     @property
-    def bucket(self) -> BucketProtocol:
+    def bucket(self) -> CooldownBucketProtocol:
         return self._bucket
 
     @property

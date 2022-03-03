@@ -20,8 +20,8 @@ DEALINGS IN THE SOFTWARE.
 from typing import Any, Protocol
 
 
-class CooldownBucketProtocol(Protocol):
-    """CooldownBucketProtocol implementation Protocol."""
+class ConcurrencyBucketProtocol(Protocol):
+    """ConcurrencyBucketProtocol implementation Protocol."""
 
     def process(self, *args, **kwargs) -> Any:
         """

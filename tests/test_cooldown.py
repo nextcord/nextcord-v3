@@ -141,7 +141,7 @@ async def test_stacked_cooldowns():
     with pytest.raises(CallableOnCooldown):
         await test_func(2)
 
-    # Args don't matter, its a kwargs based BucketProtocol
+    # Args don't matter, its a kwargs based CooldownBucketProtocol
     await test_func(1, two=2)
     await test_func(two=2)
     with pytest.raises(CallableOnCooldown):
@@ -160,9 +160,7 @@ def test_sync_cooldowns():
 async def test_checks():
     """Ensures the check works as expected"""
     # Only apply cooldowns if the first arg is 1
-    @cooldown(
-        1, 1, bucket=CooldownBucket.args, check=lambda *args, **kwargs: args[0] == 1
-    )
+    @cooldown(1, 1, bucket=CooldownBucket.args, check=lambda *args, **kwargs: args[0] == 1)
     async def test_func(*args, **kwargs) -> (tuple, dict):
         return args, kwargs
 

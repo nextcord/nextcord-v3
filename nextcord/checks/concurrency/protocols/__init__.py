@@ -17,19 +17,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
-from typing import Any, Protocol
+from .bucket import ConcurrencyBucketProtocol
 
-
-class CooldownBucketProtocol(Protocol):
-    """CooldownBucketProtocol implementation Protocol."""
-
-    def process(self, *args, **kwargs) -> Any:
-        """
-
-        Returns
-        -------
-        Any
-            The values returned from this method
-            will be used to represent a bucket.
-        """
-        ...
+__all__ = ("ConcurrencyBucketProtocol",)

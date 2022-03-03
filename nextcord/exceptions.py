@@ -1,7 +1,9 @@
+from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from nextcord.checks.cooldowns import Cooldown
+    from nextcord.checks.concurrency.protocols import ConcurrencyBucketProtocol
 
 
 class NextcordException(Exception):
@@ -58,9 +60,34 @@ class CallableOnCooldown(RatelimitException):
     def __init__(
         self,
         func: Callable,
-        cooldown: "Cooldown",
+        cooldown: Cooldown,
         retry_after: float,
     ) -> None:
         self.func: Callable = func
-        self.cooldown: "Cooldown" = cooldown
+        self.cooldown: Cooldown = cooldown
         self.retry_after: float = retry_after
+
+
+class MaxConcurrencyReached(RatelimitException):
+    """
+    This :type:`Callable` has reached its concurrency limits.
+
+    Attributes
+    ==========
+    func: Callable
+        The :type:`Callable` which is currently concurrency limited
+    bucket: ConcurrencyBucketProtocol
+        The :class:`Cooldown` which applies to the current cooldown
+    call_count: int
+        How many times this func can be called concurrently.
+    """
+
+    def __init__(
+        self,
+        func: Callable,
+        bucket: ConcurrencyBucketProtocol,
+        call_count: int,
+    ) -> None:
+        self.func: Callable = func
+        self.bucket: ConcurrencyBucketProtocol = bucket
+        self.call_count: int = call_count
