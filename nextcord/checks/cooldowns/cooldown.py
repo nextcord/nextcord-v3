@@ -158,6 +158,18 @@ class CooldownTimesPer:
 
         self.current += 1
 
+    @property
+    def has_cooldown(self) -> bool:
+        """
+        Is this instance currently tracking
+        any cooldowns?
+
+        If this returns False we can safely
+        delete this instance from the
+        :class:`Cooldown` lookup table.
+        """
+        return self.current != self.limit
+
 
 class Cooldown:
     """Represents a cooldown for any given :type:`Callable`."""
@@ -241,7 +253,7 @@ class Cooldown:
             An internally correct representation
             of a bucket for the given arguments.
 
-            This can then be used in :meth:`Cooldown.reset` calls.
+            This can then be used in :meth:`Cooldown.clear` calls.
         """
         data = self._bucket.process(*args, **kwargs)
         if self._bucket is CooldownBucket.all:
@@ -255,9 +267,10 @@ class Cooldown:
 
         return _HashableArguments(data)
 
-    def reset(self, bucket: Optional[_HashableArguments] = None) -> None:
+    def clear(self, bucket: Optional[_HashableArguments] = None) -> None:
         """
-        Reset the given bucket, or the entire cooldown.
+        Remove all un-needed buckets, this maintains buckets
+        which are currently tracking cooldowns.
 
         Parameters
         ----------
@@ -272,13 +285,19 @@ class Cooldown:
         if not bucket:
             # Reset all buckets
             for bucket in self._cache.keys():
-                self.reset(bucket)
+                self.clear(bucket)
 
         current_time = time.time()
         self.last_reset_at = current_time + self.time_period
 
-        _bucket = self._get_cooldown_for_bucket(bucket)
-        _bucket.reset()
+        try:
+            # Evict item from cache only if it
+            # is not tracking anything
+            _bucket: CooldownTimesPer = self._cache[bucket]
+            if not _bucket.has_cooldown:
+                del self._cache[bucket]
+        except KeyError:
+            pass
 
     def __repr__(self) -> str:
         return f"Cooldown(limit={self.limit}, time_period={self.time_period}, func={self._func})"
