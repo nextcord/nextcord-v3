@@ -284,7 +284,7 @@ class Cooldown:
         """
         if not bucket:
             # Reset all buckets
-            for bucket in self._cache.keys():
+            for bucket in list(self._cache.keys()):
                 self.clear(bucket)
 
         current_time = time.time()

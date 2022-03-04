@@ -3,7 +3,7 @@ from enum import Enum
 
 import pytest
 
-from nextcord.checks.cooldowns import Cooldown, CooldownBucket, cooldown
+from nextcord.checks.cooldowns import Cooldown, CooldownBucket, cooldown, CooldownTimesPer
 from nextcord.checks.cooldowns.buckets import _HashableArguments
 from nextcord.exceptions import CallableOnCooldown
 
@@ -189,3 +189,39 @@ async def test_async_checks():
     await test_func(tuple())
     with pytest.raises(CallableOnCooldown):
         await test_func(1)
+
+
+def test_cooldown_clearing():
+    cooldown: Cooldown = Cooldown(1, 1, CooldownBucket.all)
+
+    assert not cooldown._cache
+
+    r_1 = cooldown.get_bucket(1, 1)
+    assert isinstance(r_1, _HashableArguments)
+
+    # Test both specific and global clearing
+    _bucket: CooldownTimesPer = cooldown._get_cooldown_for_bucket(r_1)
+    assert isinstance(_bucket, CooldownTimesPer)
+    assert cooldown._cache
+
+    cooldown.clear(r_1)
+    assert not cooldown._cache
+
+    _bucket_2: CooldownTimesPer = cooldown._get_cooldown_for_bucket(r_1)
+    assert isinstance(_bucket_2, CooldownTimesPer)
+    assert cooldown._cache
+
+    cooldown.clear()
+    assert not cooldown._cache
+
+    # Test 'in-use' buckets arent cleared
+    _bucket_3: CooldownTimesPer = cooldown._get_cooldown_for_bucket(r_1)
+    assert isinstance(_bucket_3, CooldownTimesPer)
+    assert cooldown._cache
+
+    assert not _bucket_3.has_cooldown
+    _bucket_3.current -= 1
+    assert _bucket_3.has_cooldown
+
+    cooldown.clear()
+    assert cooldown._cache

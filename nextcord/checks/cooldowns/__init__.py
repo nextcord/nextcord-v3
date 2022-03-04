@@ -1,4 +1,5 @@
 from .buckets import CooldownBucket
-from .cooldown import Cooldown, cooldown
+from .protocols import CooldownBucketProtocol
+from .cooldown import Cooldown, cooldown, CooldownTimesPer
 
-__all__ = ("CooldownBucket", "Cooldown", "cooldown")
+__all__ = ("CooldownBucket", "Cooldown", "cooldown", "CooldownTimesPer", "CooldownBucketProtocol")
