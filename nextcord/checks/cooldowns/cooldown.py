@@ -137,16 +137,17 @@ class CooldownTimesPer:
 
         self.current -= 1
 
-        self.loop.call_later(self.time_period, self.reset)
+        self.loop.call_later(self.time_period, self._reset_invoke)
 
         return self
 
     async def __aexit__(self, *_) -> None:
         ...
 
-    def reset(self):
-        # Reset the cooldown by 'adding'
-        # one more 'possible' call.
+    def _reset_invoke(self):
+        # Reset this cooldown by 'adding'
+        # one more 'possible' call since
+        # the current one is finished with it
         if self.current < 0:
             # Possible edge case?
             return None
