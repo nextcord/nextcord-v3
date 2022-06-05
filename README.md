@@ -1,6 +1,6 @@
 # Nextcord V3
 
-A fast modular Discord API wrapper written for python
+A fast :rocket: modular Discord API wrapper written for python
 
 ## Installation
 
