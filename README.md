@@ -8,4 +8,4 @@ A fast modular Discord API wrapper written for python
 
 ## Development Status
 
-V3 is currently in active early development. It is *not* ready for production use.
+V3 is currently in private development, which is why this is not updated. Will be updated soontm
