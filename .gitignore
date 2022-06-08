@@ -141,3 +141,4 @@ cython_debug/
 # Editors
 .vscode/
 .idea/
+.nova/
