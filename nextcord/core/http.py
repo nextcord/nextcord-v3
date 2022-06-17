@@ -195,7 +195,7 @@ class HTTPClient(HTTPClientProtocol):
         *,
         max_retries: int = 5,
     ):
-        self.version = 9
+        self.version = 10
         self.api_base = f"https://discord.com/api/v{self.version}"
 
         self.state = state
