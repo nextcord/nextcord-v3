@@ -64,7 +64,7 @@ class Shard(ShardProtocol):
         self.ready: Event = Event()
 
         # Internal things
-        self._gateway_url = "wss://gateway.discord.gg?v=9&compress=zlib-stream"
+        self._gateway_url = "wss://gateway.discord.gg?v=10&compress=zlib-stream"
         self._ws: Optional[ClientWebSocketResponse] = None
         self._state: State = state
         self._ratelimiter: TimesPer = TimesPer(120 - 3, 60)  # 3 margin for heartbeats
